@@ -1,0 +1,295 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fdfbf7; /* Warm milkish off-white background */
+  --foreground: #0f172a;
+  --platinum: #0f172a;
+  --obsidian: #ffffff;
+  --emerald-accent: #10b981;
+  --cyan-accent: #06b6d4;
+  --border-glass: rgba(15, 23, 42, 0.08);
+  --bg-glass: rgba(255, 255, 255, 0.82);
+  --card-bg: #ffffff;
+  --glass-border: rgba(15, 23, 42, 0.08);
+  --scrollbar-track: #f7f4ed;
+  --scrollbar-thumb: rgba(15, 23, 42, 0.2);
+}
+
+.dark, [data-theme="dark"] {
+  --background: #050505;
+  --foreground: #e5e4e2;
+  --platinum: #e5e4e2;
+  --obsidian: #050505;
+  --emerald-accent: #10b981;
+  --cyan-accent: #06b6d4;
+  --border-glass: rgba(229, 228, 226, 0.12);
+  --bg-glass: rgba(18, 18, 22, 0.6);
+  --card-bg: rgba(22, 22, 28, 0.7);
+  --glass-border: rgba(229, 228, 226, 0.12);
+  --scrollbar-track: #050505;
+  --scrollbar-thumb: rgba(229, 228, 226, 0.2);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  min-height: 100vh;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Liquid Glass Effects */
+.liquid-glass {
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid var(--border-glass);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.04);
+  transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.dark .liquid-glass,
+[data-theme="dark"] .liquid-glass {
+  background: rgba(18, 18, 22, 0.6);
+  border: 1px solid rgba(229, 228, 226, 0.12);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+}
+
+.liquid-glass-subtle {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+.dark .liquid-glass-subtle,
+[data-theme="dark"] .liquid-glass-subtle {
+  background: rgba(25, 25, 30, 0.45);
+  border: 1px solid rgba(229, 228, 226, 0.08);
+}
+
+.liquid-glass-card {
+  background: #ffffff;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05), inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+  transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.dark .liquid-glass-card,
+[data-theme="dark"] .liquid-glass-card {
+  background: linear-gradient(135deg, rgba(30, 30, 38, 0.7) 0%, rgba(15, 15, 18, 0.6) 100%);
+  border: 1px solid rgba(229, 228, 226, 0.15);
+  box-shadow: 0 12px 40px -10px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+.liquid-glass-button {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.06) 0%, rgba(15, 23, 42, 0.02) 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.liquid-glass-button:hover {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.1) 0%, rgba(15, 23, 42, 0.04) 100%);
+  border-color: rgba(15, 23, 42, 0.18);
+  box-shadow: 0 0 20px rgba(15, 23, 42, 0.05);
+}
+
+.dark .liquid-glass-button,
+[data-theme="dark"] .liquid-glass-button {
+  background: linear-gradient(180deg, rgba(229, 228, 226, 0.15) 0%, rgba(229, 228, 226, 0.05) 100%);
+  border: 1px solid rgba(229, 228, 226, 0.2);
+}
+
+.dark .liquid-glass-button:hover,
+[data-theme="dark"] .liquid-glass-button:hover {
+  background: linear-gradient(180deg, rgba(229, 228, 226, 0.25) 0%, rgba(229, 228, 226, 0.1) 100%);
+  border-color: rgba(229, 228, 226, 0.35);
+  box-shadow: 0 0 20px rgba(229, 228, 226, 0.15);
+}
+
+/* Light Mode Overrides for Hardcoded Dark Theme Utility Classes */
+html.light .bg-\[\#050505\],
+html[data-theme="light"] .bg-\[\#050505\] {
+  background-color: var(--background) !important;
+}
+
+html.light .text-\[\#e5e4e2\],
+html[data-theme="light"] .text-\[\#e5e4e2\] {
+  color: var(--foreground) !important;
+}
+
+/* Hardcoded dark cards & mockup device frames in Light Mode */
+html.light .bg-\[\#090909\],
+html[data-theme="light"] .bg-\[\#090909\],
+html.light .bg-\[\#0d0d0d\],
+html[data-theme="light"] .bg-\[\#0d0d0d\],
+html.light .bg-\[\#121216\],
+html[data-theme="light"] .bg-\[\#121216\],
+html.light .bg-black\/60,
+html[data-theme="light"] .bg-black\/60,
+html.light .bg-black\/50,
+html[data-theme="light"] .bg-black\/50,
+html.light .bg-black\/40,
+html[data-theme="light"] .bg-black\/40,
+html.light .bg-black\/30,
+html[data-theme="light"] .bg-black\/30 {
+  background-color: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  color: #0f172a !important;
+}
+
+/* Dark pill badges in mockup stay legible */
+html.light .bg-black\/80,
+html[data-theme="light"] .bg-black\/80 {
+  background-color: rgba(15, 23, 42, 0.88) !important;
+  color: #ffffff !important;
+}
+
+/* Text adaptations in light mode */
+html.light .text-white,
+html[data-theme="light"] .text-white {
+  color: #0f172a !important;
+}
+
+html.light .text-white\/90,
+html[data-theme="light"] .text-white\/90 {
+  color: rgba(15, 23, 42, 0.9) !important;
+}
+
+html.light .text-white\/80,
+html[data-theme="light"] .text-white\/80 {
+  color: rgba(15, 23, 42, 0.8) !important;
+}
+
+html.light .text-white\/70,
+html[data-theme="light"] .text-white\/70 {
+  color: rgba(15, 23, 42, 0.7) !important;
+}
+
+html.light .text-white\/60,
+html[data-theme="light"] .text-white\/60 {
+  color: rgba(15, 23, 42, 0.6) !important;
+}
+
+html.light .text-white\/50,
+html[data-theme="light"] .text-white\/50 {
+  color: rgba(15, 23, 42, 0.5) !important;
+}
+
+html.light .text-white\/40,
+html[data-theme="light"] .text-white\/40 {
+  color: rgba(15, 23, 42, 0.4) !important;
+}
+
+html.light .text-white\/30,
+html[data-theme="light"] .text-white\/30 {
+  color: rgba(15, 23, 42, 0.3) !important;
+}
+
+/* Keep high-contrast text on solid buttons */
+html.light .bg-gradient-to-r.text-black,
+html[data-theme="light"] .bg-gradient-to-r.text-black,
+html.light .bg-emerald-500.text-black,
+html[data-theme="light"] .bg-emerald-500.text-black,
+html.light [class*="bg-gradient-to-r"] .text-black,
+html[data-theme="light"] [class*="bg-gradient-to-r"] .text-black {
+  color: #000000 !important;
+}
+
+/* Borders in light mode */
+html.light .border-white\/10,
+html[data-theme="light"] .border-white\/10 {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+html.light .border-white\/15,
+html[data-theme="light"] .border-white\/15 {
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+html.light .border-white\/20,
+html[data-theme="light"] .border-white\/20 {
+  border-color: rgba(15, 23, 42, 0.16) !important;
+}
+
+/* Backgrounds in light mode */
+html.light .bg-white\/5,
+html[data-theme="light"] .bg-white\/5 {
+  background-color: rgba(15, 23, 42, 0.04) !important;
+}
+
+html.light .bg-white\/10,
+html[data-theme="light"] .bg-white\/10 {
+  background-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+html.light .hover\:bg-white\/5:hover,
+html[data-theme="light"] .hover\:bg-white\/5:hover {
+  background-color: rgba(15, 23, 42, 0.06) !important;
+}
+
+html.light .hover\:bg-white\/10:hover,
+html[data-theme="light"] .hover\:bg-white\/10:hover {
+  background-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+/* Device frame gradient in light mode */
+html.light .from-white\/20,
+html[data-theme="light"] .from-white\/20 {
+  --tw-gradient-from: rgba(15, 23, 42, 0.08) !important;
+}
+html.light .via-white\/5,
+html[data-theme="light"] .via-white\/5 {
+  --tw-gradient-to: rgba(15, 23, 42, 0.02) !important;
+}
+
+/* Inputs in light mode */
+html.light input,
+html[data-theme="light"] input,
+html.light textarea,
+html[data-theme="light"] textarea,
+html.light select,
+html[data-theme="light"] select {
+  color: #0f172a !important;
+}
+
+html.light input::placeholder,
+html[data-theme="light"] input::placeholder,
+html.light textarea::placeholder,
+html[data-theme="light"] textarea::placeholder {
+  color: rgba(15, 23, 42, 0.38) !important;
+}
+
+/* Hide up/down spinners on number inputs */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.5);
+}
+
