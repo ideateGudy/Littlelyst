@@ -1,21 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { authStore } from "@/lib/auth";
-import { apiClient } from "@/lib/api-client";
+import React, { createContext, useContext, useEffect } from "react";
+import { useAuthStore, AuthUser } from "@/lib/auth-store";
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  handle?: string;
-  phone?: string | null;
-  bio?: string | null;
-  avatarUrl?: string | null;
-  paystackSubaccountCode?: string | null;
-  role?: string;
-  systemUser?: boolean;
-}
+export type User = AuthUser;
 
 interface AuthContextType {
   user: User | null;
@@ -36,104 +24,32 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const user = useAuthStore((state) => state.user);
+  const loading = useAuthStore((state) => state.loading);
+  const initialized = useAuthStore((state) => state.initialized);
+  const login = useAuthStore((state) => state.login);
+  const updateUser = useAuthStore((state) => state.updateUser);
+  const logout = useAuthStore((state) => state.logout);
+  const refreshAuth = useAuthStore((state) => state.refreshAuth);
+  const initAuth = useAuthStore((state) => state.initAuth);
 
-  // Initialize session from express-session & httpOnly cookie fallback
   useEffect(() => {
-    async function initAuth() {
-      try {
-        const res = await apiClient("/api/auth/current-user");
-        if (res.user) {
-          setUser(res.user);
-          authStore.setLoggedInMarker(true);
-        } else {
-          // Fallback to refresh token rotation
-          const refreshRes = await apiClient("/api/auth/refresh", { method: "POST" });
-          if (refreshRes.user) {
-            setUser(refreshRes.user);
-            authStore.setLoggedInMarker(true);
-          } else {
-            setUser(null);
-            authStore.clearSession();
-          }
-        }
-      } catch (err) {
-        try {
-          // Attempt automatic token refresh on reload
-          const refreshRes = await apiClient("/api/auth/refresh", { method: "POST" });
-          if (refreshRes.user) {
-            setUser(refreshRes.user);
-            authStore.setLoggedInMarker(true);
-          } else {
-            setUser(null);
-            authStore.clearSession();
-          }
-        } catch {
-          setUser(null);
-          authStore.clearSession();
-        }
-      } finally {
-        setLoading(false);
-      }
+    if (!initialized) {
+      initAuth();
     }
-
-    initAuth();
-  }, []);
-
-  const login = (userData: User) => {
-    setUser(userData);
-    authStore.setLoggedInMarker(true);
-  };
-
-  const updateUser = (updatedFields: Partial<User>) => {
-    setUser((prev) => (prev ? { ...prev, ...updatedFields } : null));
-  };
-
-  const logout = async () => {
-    try {
-      await apiClient("/api/auth/logout", { method: "POST" });
-    } catch (err) {
-      console.error("Logout request failed:", err);
-    } finally {
-      authStore.clearSession();
-      setUser(null);
-      window.location.href = "/login";
-    }
-  };
-
-  const refreshAuth = async () => {
-    try {
-      const res = await apiClient("/api/auth/current-user");
-      if (res.user) {
-        setUser(res.user);
-        authStore.setLoggedInMarker(true);
-      } else {
-        const refreshRes = await apiClient("/api/auth/refresh", { method: "POST" });
-        if (refreshRes.user) {
-          setUser(refreshRes.user);
-          authStore.setLoggedInMarker(true);
-        }
-      }
-    } catch {
-      try {
-        const refreshRes = await apiClient("/api/auth/refresh", { method: "POST" });
-        if (refreshRes.user) {
-          setUser(refreshRes.user);
-          authStore.setLoggedInMarker(true);
-        } else {
-          authStore.clearSession();
-          setUser(null);
-        }
-      } catch {
-        authStore.clearSession();
-        setUser(null);
-      }
-    }
-  };
+  }, [initialized, initAuth]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, updateUser, logout, refreshAuth }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        updateUser,
+        logout,
+        refreshAuth,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

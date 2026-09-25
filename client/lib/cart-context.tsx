@@ -1,23 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { useCartStore, CartItem } from "@/lib/cart-store";
 
-export interface CartItem {
-  productId: string;
-  sellerId: string;
-  title: string;
-  slug: string;
-  image?: string;
-  productType: string;
-  variantId?: string;
-  variantTitle?: string;
-  unitPriceMinor: number;
-  originalPriceMinor: number;
-  discountPriceMinor?: number;
-  promoPriceMinor?: number;
-  hasPromo?: boolean;
-  quantity: number;
-}
+export type { CartItem };
 
 interface CartContextType {
   items: CartItem[];
@@ -43,85 +29,30 @@ const CartContext = createContext<CartContextType>({
   setIsOpen: () => {},
 });
 
-const CART_STORAGE_KEY = "littlelyst_cart";
-
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
+  const items = useCartStore((state) => state.items);
+  const isOpen = useCartStore((state) => state.isOpen);
+  const addItem = useCartStore((state) => state.addItem);
+  const removeItem = useCartStore((state) => state.removeItem);
+  const updateQuantity = useCartStore((state) => state.updateQuantity);
+  const clearCart = useCartStore((state) => state.clearCart);
+  const setIsOpen = useCartStore((state) => state.setIsOpen);
+
   const [mounted, setMounted] = useState(false);
 
-  // Load from localStorage
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(CART_STORAGE_KEY);
-      if (stored) {
-        setItems(JSON.parse(stored));
-      }
-    } catch {}
     setMounted(true);
   }, []);
 
-  // Save to localStorage
-  useEffect(() => {
-    if (mounted) {
-      try {
-        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
-      } catch {}
-    }
-  }, [items, mounted]);
-
-  const addItem = (item: Omit<CartItem, "quantity">, quantity: number = 1) => {
-    setItems((prev) => {
-      const index = prev.findIndex(
-        (i) => i.productId === item.productId && (i.variantId || null) === (item.variantId || null)
-      );
-
-      if (index >= 0) {
-        const copy = [...prev];
-        copy[index].quantity += quantity;
-        return copy;
-      }
-
-      return [...prev, { ...item, quantity }];
-    });
-    setIsOpen(true);
-  };
-
-  const removeItem = (productId: string, variantId?: string) => {
-    setItems((prev) =>
-      prev.filter(
-        (i) => !(i.productId === productId && (i.variantId || null) === (variantId || null))
-      )
-    );
-  };
-
-  const updateQuantity = (productId: string, quantity: number, variantId?: string) => {
-    if (quantity <= 0) {
-      removeItem(productId, variantId);
-      return;
-    }
-
-    setItems((prev) =>
-      prev.map((i) => {
-        if (i.productId === productId && (i.variantId || null) === (variantId || null)) {
-          return { ...i, quantity };
-        }
-        return i;
-      })
-    );
-  };
-
-  const clearCart = () => {
-    setItems([]);
-  };
-
-  const totalCount = items.reduce((acc, i) => acc + i.quantity, 0);
-  const totalAmountMinor = items.reduce((acc, i) => acc + i.unitPriceMinor * i.quantity, 0);
+  const totalCount = mounted ? items.reduce((acc, i) => acc + i.quantity, 0) : 0;
+  const totalAmountMinor = mounted
+    ? items.reduce((acc, i) => acc + i.unitPriceMinor * i.quantity, 0)
+    : 0;
 
   return (
     <CartContext.Provider
       value={{
-        items,
+        items: mounted ? items : [],
         addItem,
         removeItem,
         updateQuantity,
