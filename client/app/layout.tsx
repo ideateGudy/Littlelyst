@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
-import { AuthProvider } from "@/lib/auth-context";
-import { ThemeProvider } from "@/lib/theme-context";
-import { CartProvider } from "@/lib/cart-context";
+import { AppInitializer } from "@/components/ui/app-initializer";
 import { CartSheet } from "@/components/ui/cart-sheet";
 
 export const viewport: Viewport = {
@@ -22,9 +21,7 @@ export const metadata: Metadata = {
   description:
     "The social-first individual commerce catalogue. Create a personal storefront in under 5 minutes, share on WhatsApp Status, and receive payments with zero buyer logins.",
   icons: {
-    icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-    ],
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
     shortcut: "/favicon.svg",
     apple: "/favicon.svg",
   },
@@ -97,40 +94,42 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark scroll-smooth" data-scroll-behavior="smooth" suppressHydrationWarning>
-      <body className="antialiased min-h-screen bg-[#050505] text-[#e5e4e2] overflow-x-hidden selection:bg-emerald-500 selection:text-black">
-        <script
+      <head>
+        {/*
+          Theme initializer: runs synchronously before paint to prevent FOUC.
+          Must use Next.js <Script strategy="beforeInteractive"> — not a bare <script> tag —
+          to avoid the React hydration warning about scripts inside components.
+        */}
+        <Script
           id="theme-initializer"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                const saved = localStorage.getItem('littlelyst-theme');
+                var saved = localStorage.getItem('littlelyst-theme');
+                var root = document.documentElement;
                 if (saved === 'light') {
-                  document.documentElement.classList.remove('dark');
-                  document.documentElement.classList.add('light');
-                  document.documentElement.setAttribute('data-theme', 'light');
-                  document.documentElement.style.colorScheme = 'light';
+                  root.classList.remove('dark'); root.classList.add('light');
+                  root.setAttribute('data-theme', 'light');
+                  root.style.colorScheme = 'light';
                 } else {
-                  document.documentElement.classList.add('dark');
-                  document.documentElement.classList.remove('light');
-                  document.documentElement.setAttribute('data-theme', 'dark');
-                  document.documentElement.style.colorScheme = 'dark';
+                  root.classList.add('dark'); root.classList.remove('light');
+                  root.setAttribute('data-theme', 'dark');
+                  root.style.colorScheme = 'dark';
                 }
-              } catch (e) {}
+              } catch(e) {}
             `,
           }}
         />
-        <script
-          src="https://js.paystack.co/v2/inline.js"
-          async
-        />
-        <ThemeProvider>
-          <AuthProvider>
-            <CartProvider>
-              {children}
-              <CartSheet />
-            </CartProvider>
-          </AuthProvider>
-        </ThemeProvider>
+      </head>
+      <body className="antialiased min-h-screen bg-[#050505] text-[#e5e4e2] overflow-x-hidden selection:bg-emerald-500 selection:text-black">
+        {/* Paystack inline.js — loads async, no blocking */}
+        <Script src="https://js.paystack.co/v2/inline.js" strategy="lazyOnload" />
+
+        {/* No Context Providers — all state is Zustand. AppInitializer boots auth + theme. */}
+        <AppInitializer />
+        {children}
+        <CartSheet />
       </body>
     </html>
   );

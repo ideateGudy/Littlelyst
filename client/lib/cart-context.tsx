@@ -1,73 +1,29 @@
+/**
+ * Shim: re-exports from cart-store so existing `import { useCart } from "@/lib/cart-context"` still works.
+ * CartProvider is now a no-op — all cart state lives in Zustand (useCartStore).
+ */
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { useCartStore, CartItem } from "@/lib/cart-store";
+export { useCartStore, type CartItem } from "@/lib/cart-store";
 
-export type { CartItem };
+import { useCartStore } from "@/lib/cart-store";
 
-interface CartContextType {
-  items: CartItem[];
-  addItem: (item: Omit<CartItem, "quantity">, quantity?: number) => void;
-  removeItem: (productId: string, variantId?: string) => void;
-  updateQuantity: (productId: string, quantity: number, variantId?: string) => void;
-  clearCart: () => void;
-  totalCount: number;
-  totalAmountMinor: number;
-  isOpen: boolean;
-  setIsOpen: (open: boolean) => void;
+/** Direct Zustand hook — replaces useContext(CartContext). */
+export function useCart() {
+  const items = useCartStore((s) => s.items);
+  const isOpen = useCartStore((s) => s.isOpen);
+  const addItem = useCartStore((s) => s.addItem);
+  const removeItem = useCartStore((s) => s.removeItem);
+  const updateQuantity = useCartStore((s) => s.updateQuantity);
+  const clearCart = useCartStore((s) => s.clearCart);
+  const setIsOpen = useCartStore((s) => s.setIsOpen);
+
+  const totalCount = items.reduce((acc, i) => acc + i.quantity, 0);
+  const totalAmountMinor = items.reduce((acc, i) => acc + i.unitPriceMinor * i.quantity, 0);
+
+  return { items, addItem, removeItem, updateQuantity, clearCart, totalCount, totalAmountMinor, isOpen, setIsOpen };
 }
-
-const CartContext = createContext<CartContextType>({
-  items: [],
-  addItem: () => {},
-  removeItem: () => {},
-  updateQuantity: () => {},
-  clearCart: () => {},
-  totalCount: 0,
-  totalAmountMinor: 0,
-  isOpen: false,
-  setIsOpen: () => {},
-});
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const items = useCartStore((state) => state.items);
-  const isOpen = useCartStore((state) => state.isOpen);
-  const addItem = useCartStore((state) => state.addItem);
-  const removeItem = useCartStore((state) => state.removeItem);
-  const updateQuantity = useCartStore((state) => state.updateQuantity);
-  const clearCart = useCartStore((state) => state.clearCart);
-  const setIsOpen = useCartStore((state) => state.setIsOpen);
-
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const totalCount = mounted ? items.reduce((acc, i) => acc + i.quantity, 0) : 0;
-  const totalAmountMinor = mounted
-    ? items.reduce((acc, i) => acc + i.unitPriceMinor * i.quantity, 0)
-    : 0;
-
-  return (
-    <CartContext.Provider
-      value={{
-        items: mounted ? items : [],
-        addItem,
-        removeItem,
-        updateQuantity,
-        clearCart,
-        totalCount,
-        totalAmountMinor,
-        isOpen,
-        setIsOpen,
-      }}
-    >
-      {children}
-    </CartContext.Provider>
-  );
-}
-
-export function useCart() {
-  return useContext(CartContext);
+  return <>{children}</>;
 }

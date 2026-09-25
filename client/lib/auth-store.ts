@@ -11,9 +11,12 @@ export interface AuthUser {
   bio?: string | null;
   avatarUrl?: string | null;
   paystackSubaccountCode?: string | null;
-  role?: string;
-  systemUser?: boolean;
+  paystackBankName?: string | null;
+  paystackAccountNumber?: string | null;
+  role?: "seller" | "buyer" | "admin" | "super-admin";
 }
+
+export type User = AuthUser;
 
 interface AuthState {
   user: AuthUser | null;
@@ -32,6 +35,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   initialized: false,
 
   initAuth: async () => {
+    if (get().initialized) return;
     try {
       const res = await apiClient("/api/auth/current-user");
       if (res.user) {
@@ -39,7 +43,6 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
         authStore.setLoggedInMarker(true);
         return;
       }
-
       // Fallback to refresh token rotation
       const refreshRes = await apiClient("/api/auth/refresh", { method: "POST" });
       if (refreshRes.user) {
@@ -85,7 +88,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       console.error("Logout request failed:", err);
     } finally {
       authStore.clearSession();
-      set({ user: null, loading: false });
+      set({ user: null, loading: false, initialized: false });
     }
   },
 
@@ -105,3 +108,9 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     }
   },
 }));
+
+/**
+ * Direct Zustand hook — replaces useContext(AuthContext).
+ * Use this everywhere instead of useAuth().
+ */
+export const useAuth = () => useAuthStore();

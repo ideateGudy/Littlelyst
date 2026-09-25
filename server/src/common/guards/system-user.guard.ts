@@ -11,12 +11,10 @@ export class SystemUserGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
-    const isSuperAdmin =
+    // Admin access: role must be "admin" or "super-admin"
+    const isAdmin =
       user &&
-      (user.systemUser === true ||
-        user.role === "super-admin");
-
-    const isAdmin = user && (isSuperAdmin || user.role === "admin");
+      (user.role === "super-admin" || user.role === "admin");
 
     if (!isAdmin) {
       throw new ForbiddenException({

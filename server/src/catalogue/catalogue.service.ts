@@ -34,7 +34,9 @@ export class CatalogueService {
       .limit(1);
 
     const seller = sellerList[0];
-    if (!seller || seller.role === "buyer") {
+    // Only users with the "seller" role have a public storefront.
+    // Buyers, admins, and super-admins do not get a storefront even if they have a handle.
+    if (!seller || seller.role !== "seller") {
       throw new NotFoundException({
         status: "failed",
         message: `Catalogue @${handle} not found`,

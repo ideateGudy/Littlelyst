@@ -9,17 +9,12 @@ export class AccessTokenGuard extends AuthGuard("jwt") {
     // 1. Check express-session first
     if (req.session?.userId) {
       const sessionUser = req.session.user || {};
-      const isSuper =
-        sessionUser.systemUser === true ||
-        sessionUser.role === "super-admin";
-
       req.user = {
         id: req.session.userId,
         email: sessionUser.email || "",
         name: sessionUser.name || "",
         handle: sessionUser.handle || "",
         role: sessionUser.role || "seller",
-        systemUser: isSuper,
         avatarUrl: sessionUser.avatarUrl || null,
         phone: sessionUser.phone || null,
         bio: sessionUser.bio || null,

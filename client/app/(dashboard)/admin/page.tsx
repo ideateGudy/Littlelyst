@@ -33,7 +33,6 @@ interface AdminUser {
   email: string;
   handle: string;
   role: string;
-  systemUser: boolean;
   phone?: string | null;
   avatarUrl?: string | null;
   paystackBankName?: string | null;
@@ -180,11 +179,7 @@ export default function AdminPage() {
         setUsers((prev) =>
           prev.map((u) =>
             u.id === editingUser.id
-              ? {
-                  ...u,
-                  role: newRole,
-                  systemUser: false,
-                }
+              ? { ...u, role: newRole }
               : u
           )
         );
@@ -227,7 +222,7 @@ export default function AdminPage() {
         : roleFilter === "BUYERS"
         ? u.role === "buyer" && !u.isRegisteredStore
         : roleFilter === "ADMINS"
-        ? u.role === "admin" || u.role === "super-admin" || u.systemUser === true
+        ? u.role === "admin" || u.role === "super-admin"
         : true;
 
     return matchesSearch && matchesRole;
@@ -438,7 +433,7 @@ export default function AdminPage() {
               ) : (
                 filteredUsers.map((u) => {
                   const isSelf = u.id === user?.id;
-                  const isSuper = u.role === "super-admin" || u.systemUser === true;
+                  const isSuper = u.role === "super-admin";
 
                   return (
                     <tr key={u.id} className="hover:bg-white/[0.02] transition-colors">
@@ -459,7 +454,7 @@ export default function AdminPage() {
                                   You
                                 </span>
                               )}
-                              {u.systemUser || u.role === "super-admin" ? (
+                              {u.role === "super-admin" ? (
                                 <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono border border-purple-500/30 font-bold">
                                   Super Admin
                                 </span>
@@ -628,7 +623,7 @@ export default function AdminPage() {
                     >
                       <option value="seller">Seller (Storefront)</option>
                       <option value="buyer">Buyer (Shopper)</option>
-                      {user?.systemUser && <option value="admin">Platform Admin</option>}
+                      {user?.role === "super-admin" && <option value="admin">Platform Admin</option>}
                     </select>
                   </div>
 

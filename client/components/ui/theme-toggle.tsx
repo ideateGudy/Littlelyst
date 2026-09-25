@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useTheme } from "@/lib/theme-context";
+import { useThemeStore } from "@/lib/theme-store";
 import { Sun, Moon } from "lucide-react";
 
 interface ThemeToggleProps {
@@ -10,7 +10,7 @@ interface ThemeToggleProps {
 }
 
 export function ThemeToggle({ className = "", size = "md" }: ThemeToggleProps) {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme } = useThemeStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

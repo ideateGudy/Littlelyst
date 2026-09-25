@@ -84,9 +84,7 @@ export default function BuyerDashboardLayout({
               <span>Seller Mode</span>
             </Link>
 
-            {(user?.role === "super-admin" ||
-              user?.role === "admin" ||
-              user?.systemUser === true) && (
+            {(user?.role === "super-admin" || user?.role === "admin") && (
               <Link
                 href="/admin"
                 className="text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl hover:bg-amber-500/20 transition-all flex items-center gap-1.5"
