@@ -67,7 +67,7 @@ export default function AdminPage() {
   const [createName, setCreateName] = useState("");
   const [createEmail, setCreateEmail] = useState("");
   const [createPassword, setCreatePassword] = useState("");
-  const [createRole, setCreateRole] = useState<"seller" | "admin" | "super-admin">("seller");
+  const [createRole, setCreateRole] = useState<"seller" | "admin" | "buyer">("seller");
   const [createHandle, setCreateHandle] = useState("");
   const [createPhone, setCreatePhone] = useState("");
   const [createError, setCreateError] = useState("");
@@ -75,7 +75,7 @@ export default function AdminPage() {
 
   // Edit Role Modal State
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
-  const [newRole, setNewRole] = useState<"seller" | "admin" | "super-admin">("seller");
+  const [newRole, setNewRole] = useState<"seller" | "admin" | "buyer">("seller");
   const [roleSaving, setRoleSaving] = useState(false);
   const [roleError, setRoleError] = useState("");
 
@@ -177,7 +177,7 @@ export default function AdminPage() {
               ? {
                   ...u,
                   role: newRole,
-                  systemUser: newRole === "super-admin",
+                  systemUser: false,
                 }
               : u
           )
@@ -408,13 +408,25 @@ export default function AdminPage() {
                             <div className="flex items-center gap-1.5 font-bold text-white">
                               <span>{u.name}</span>
                               {isSelf && (
-                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono border border-amber-500/30">
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono border border-amber-500/30">
                                   You
                                 </span>
                               )}
-                              {isSuper && !isSelf && (
-                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-400 font-mono">
+                              {u.systemUser || u.role === "super-admin" ? (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono border border-purple-500/30 font-bold">
+                                  Super Admin
+                                </span>
+                              ) : u.role === "admin" ? (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono border border-amber-500/30 font-bold">
                                   Admin
+                                </span>
+                              ) : u.role === "buyer" ? (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono border border-blue-500/30">
+                                  Buyer
+                                </span>
+                              ) : (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono border border-emerald-500/30">
+                                  Seller
                                 </span>
                               )}
                             </div>
@@ -563,9 +575,9 @@ export default function AdminPage() {
                       onChange={(e) => setCreateRole(e.target.value as any)}
                       className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:border-amber-400 focus:outline-none"
                     >
-                      <option value="seller">Seller (Shop)</option>
-                      <option value="admin">Platform Admin</option>
-                      <option value="super-admin">Super Admin</option>
+                      <option value="seller">Seller (Storefront)</option>
+                      <option value="buyer">Buyer (Shopper)</option>
+                      {user?.systemUser && <option value="admin">Platform Admin</option>}
                     </select>
                   </div>
 
@@ -660,9 +672,9 @@ export default function AdminPage() {
                     onChange={(e) => setNewRole(e.target.value as any)}
                     className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:border-amber-400 focus:outline-none"
                   >
-                    <option value="seller">Seller (Shop Merchant)</option>
+                    <option value="seller">Seller (Storefront Merchant)</option>
+                    <option value="buyer">Buyer (Customer)</option>
                     <option value="admin">Platform Admin</option>
-                    <option value="super-admin">Super Admin</option>
                   </select>
                 </div>
 

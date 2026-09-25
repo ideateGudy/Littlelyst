@@ -24,6 +24,7 @@ import {
   RefreshCw,
   KeyRound,
   Check,
+  ShoppingBag,
 } from "lucide-react";
 
 export default function RegisterPage() {
@@ -36,12 +37,15 @@ export default function RegisterPage() {
   // OTP Channel: "phone" | "email"
   const [otpChannel, setOtpChannel] = useState<"phone" | "email">("email");
 
+  const [selectedRole, setSelectedRole] = useState<"seller" | "buyer">("seller");
+
   // Form Fields
   const [phone, setPhone] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [simulatedOtp, setSimulatedOtp] = useState<string | null>(null);
 
   const [brandName, setBrandName] = useState("");
+  const [buyerName, setBuyerName] = useState("");
   const [handle, setHandle] = useState("");
   const [isHandleCustomized, setIsHandleCustomized] = useState(false);
   const [handleLoading, setHandleLoading] = useState(false);
@@ -159,16 +163,23 @@ export default function RegisterPage() {
     }
   };
 
-  // Step 3: Brand & Auto-generated Catalogue Link
+  // Step 3: Brand/Buyer Details & Handle
   const handleBrandNext = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!brandName.trim()) {
-      setError("Please enter your brand or store name");
-      return;
-    }
-    if (!handle.trim()) {
-      setError("Please specify a catalogue link");
-      return;
+    if (selectedRole === "seller") {
+      if (!brandName.trim()) {
+        setError("Please enter your brand or store name");
+        return;
+      }
+      if (!handle.trim()) {
+        setError("Please specify a catalogue link");
+        return;
+      }
+    } else {
+      if (!buyerName.trim()) {
+        setError("Please enter your full name");
+        return;
+      }
     }
     setError("");
     setStep(4);
@@ -181,6 +192,10 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
+      const isBuyer = selectedRole === "buyer";
+      const name = isBuyer ? buyerName.trim() : brandName.trim();
+      const generatedHandle = isBuyer ? undefined : handle.trim().toLowerCase();
+
       const res = await apiClient<{
         status: string;
         token: string;
@@ -189,22 +204,27 @@ export default function RegisterPage() {
       }>("/api/auth/register", {
         method: "POST",
         body: JSON.stringify({
-          name: brandName.trim(),
+          name,
           email: email.trim().toLowerCase(),
           password,
-          phone: phone.trim(),
-          handle: handle.trim().toLowerCase(),
+          phone: phone.trim() || undefined,
+          handle: generatedHandle,
+          role: selectedRole,
         }),
       });
 
       if (res.user) {
         login(res.user);
-        router.push("/dashboard");
+        if (isBuyer) {
+          router.push("/");
+        } else {
+          router.push("/dashboard");
+        }
       } else {
         throw new Error(res.message || "Registration failed");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to complete catalogue setup");
+      setError(err.message || "Failed to complete account registration");
     } finally {
       setLoading(false);
     }
@@ -221,17 +241,53 @@ export default function RegisterPage() {
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
         {/* Header */}
-        <div className="text-center space-y-2 mb-6">
+        <div className="text-center space-y-2 mb-5">
           <Link href="/" className="inline-block hover:opacity-90 transition-opacity">
             <Logo iconOnly size="lg" className="mx-auto" />
           </Link>
           <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-            Launch Your Littlelyst
+            {selectedRole === "seller" ? "Launch Your Littlelyst" : "Join as a Shopper"}
           </h1>
           <p className="text-xs text-white/50">
-            Turn your phone into a live, payable storefront in under 5 minutes.
+            {selectedRole === "seller"
+              ? "Turn your phone into a live, payable storefront in under 5 minutes."
+              : "Save your details once, track your orders & checkout in 1-click."}
           </p>
         </div>
+
+        {/* Account Type Selector (Seller vs Buyer) */}
+        {step === 1 && (
+          <div className="flex bg-black/40 p-1 rounded-xl border border-white/10 text-xs mb-5">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedRole("seller");
+                setError("");
+              }}
+              className={`flex-1 py-2 rounded-lg flex items-center justify-center gap-1.5 font-bold transition-all cursor-pointer ${
+                selectedRole === "seller"
+                  ? "bg-gradient-to-r from-emerald-500 to-teal-400 text-black shadow-md"
+                  : "text-white/60 hover:text-white"
+              }`}
+            >
+              <Store className="w-3.5 h-3.5" /> Merchant / Seller
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedRole("buyer");
+                setError("");
+              }}
+              className={`flex-1 py-2 rounded-lg flex items-center justify-center gap-1.5 font-bold transition-all cursor-pointer ${
+                selectedRole === "buyer"
+                  ? "bg-gradient-to-r from-emerald-500 to-teal-400 text-black shadow-md"
+                  : "text-white/60 hover:text-white"
+              }`}
+            >
+              <ShoppingBag className="w-3.5 h-3.5" /> Customer / Buyer
+            </button>
+          </div>
+        )}
 
         {/* Step Progress Indicators */}
         <div className="flex items-center justify-between mb-6 px-1">
@@ -454,7 +510,7 @@ export default function RegisterPage() {
             </motion.form>
           )}
 
-          {/* STEP 3: BRAND NAME & AUTOGENERATED CATALOGUE LINK */}
+          {/* STEP 3: BRAND NAME (SELLER) OR FULL NAME (BUYER) */}
           {step === 3 && (
             <motion.form
               key="step-3"
@@ -464,62 +520,84 @@ export default function RegisterPage() {
               onSubmit={handleBrandNext}
               className="space-y-4"
             >
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-white/80 flex items-center gap-1.5">
-                  <Store className="w-3.5 h-3.5 text-emerald-400" />
-                  Your Brand / Store Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={brandName}
-                  onChange={(e) => setBrandName(e.target.value)}
-                  placeholder="e.g. Ada Cosmetics, Kicks By Tim"
-                  className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-emerald-400 transition-colors"
-                />
-              </div>
+              {selectedRole === "seller" ? (
+                <>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-white/80 flex items-center gap-1.5">
+                      <Store className="w-3.5 h-3.5 text-emerald-400" />
+                      Your Brand / Store Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={brandName}
+                      onChange={(e) => setBrandName(e.target.value)}
+                      placeholder="e.g. Ada Cosmetics, Kicks By Tim"
+                      className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-emerald-400 transition-colors"
+                    />
+                  </div>
 
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-white/80 flex items-center gap-1.5">
+                        <LinkIcon className="w-3.5 h-3.5 text-teal-400" />
+                        Autogenerated Catalogue Link
+                      </label>
+                      {handleLoading ? (
+                        <span className="text-[10px] text-teal-400 animate-pulse flex items-center gap-1">
+                          <RefreshCw className="w-3 h-3 animate-spin" /> Checking DB...
+                        </span>
+                      ) : handle ? (
+                        <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                          <Check className="w-3 h-3" /> Unique & Available
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-white/40">Can be edited anytime</span>
+                      )}
+                    </div>
+                    <div className="relative flex items-center">
+                      <span className="absolute left-3.5 text-xs text-white/40 font-mono">
+                        lyst.me/
+                      </span>
+                      <input
+                        type="text"
+                        required
+                        value={handle}
+                        onChange={(e) => {
+                          setIsHandleCustomized(true);
+                          setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, ""));
+                        }}
+                        placeholder="brand-name"
+                        className="w-full bg-black/60 border border-white/10 rounded-xl pl-20 pr-9 py-2.5 text-xs font-mono text-emerald-400 placeholder-white/30 focus:outline-none focus:border-emerald-400 transition-colors"
+                      />
+                      {handleLoading && (
+                        <RefreshCw className="w-3.5 h-3.5 text-emerald-400 absolute right-3 animate-spin" />
+                      )}
+                    </div>
+                    <p className="text-[11px] text-white/40">
+                      Automatically checked against database records to prevent duplicate store links.
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-white/80 flex items-center gap-1.5">
-                    <LinkIcon className="w-3.5 h-3.5 text-teal-400" />
-                    Autogenerated Catalogue Link
+                    <ShoppingBag className="w-3.5 h-3.5 text-emerald-400" />
+                    Full Legal Name
                   </label>
-                  {handleLoading ? (
-                    <span className="text-[10px] text-teal-400 animate-pulse flex items-center gap-1">
-                      <RefreshCw className="w-3 h-3 animate-spin" /> Checking DB...
-                    </span>
-                  ) : handle ? (
-                    <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-                      <Check className="w-3 h-3" /> Unique & Available
-                    </span>
-                  ) : (
-                    <span className="text-[10px] text-white/40">Can be edited anytime</span>
-                  )}
-                </div>
-                <div className="relative flex items-center">
-                  <span className="absolute left-3.5 text-xs text-white/40 font-mono">
-                    lyst.me/
-                  </span>
+                  <p className="text-[11px] text-white/50">
+                    This will be prefilled automatically whenever you place orders across merchant catalogues.
+                  </p>
                   <input
                     type="text"
                     required
-                    value={handle}
-                    onChange={(e) => {
-                      setIsHandleCustomized(true);
-                      setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, ""));
-                    }}
-                    placeholder="brand-name"
-                    className="w-full bg-black/60 border border-white/10 rounded-xl pl-20 pr-9 py-2.5 text-xs font-mono text-emerald-400 placeholder-white/30 focus:outline-none focus:border-emerald-400 transition-colors"
+                    value={buyerName}
+                    onChange={(e) => setBuyerName(e.target.value)}
+                    placeholder="e.g. Chioma Okeke"
+                    className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-emerald-400 transition-colors"
                   />
-                  {handleLoading && (
-                    <RefreshCw className="w-3.5 h-3.5 text-emerald-400 absolute right-3 animate-spin" />
-                  )}
                 </div>
-                <p className="text-[11px] text-white/40">
-                  Automatically checked against database records to prevent duplicate store links.
-                </p>
-              </div>
+              )}
 
               <div className="flex items-center gap-2 pt-1">
                 <button
@@ -531,10 +609,10 @@ export default function RegisterPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={!brandName.trim() || !handle.trim()}
+                  disabled={selectedRole === "seller" ? (!brandName.trim() || !handle.trim()) : !buyerName.trim()}
                   className="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-extrabold text-xs flex items-center justify-center gap-2 hover:opacity-95 shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all cursor-pointer disabled:opacity-50"
                 >
-                  Confirm Brand <ArrowRight className="w-3.5 h-3.5" />
+                  Continue <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </motion.form>
@@ -550,19 +628,37 @@ export default function RegisterPage() {
               onSubmit={handleFinalRegister}
               className="space-y-4"
             >
-              <div className="p-3 rounded-2xl liquid-glass-subtle border border-emerald-500/20 flex items-center justify-between text-xs">
-                <div>
-                  <span className="text-[10px] text-white/40 block">Your Store Link</span>
-                  <span className="font-mono text-emerald-400 font-bold">lyst.me/{handle}</span>
+              {selectedRole === "seller" ? (
+                <div className="p-3 rounded-2xl liquid-glass-subtle border border-emerald-500/20 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-[10px] text-white/40 block">Your Store Link</span>
+                    <span className="font-mono text-emerald-400 font-bold">lyst.me/{handle}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setStep(3)}
+                    className="text-[10px] text-white/60 hover:text-emerald-400 underline"
+                  >
+                    Edit
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setStep(3)}
-                  className="text-[10px] text-white/60 hover:text-emerald-400 underline"
-                >
-                  Edit
-                </button>
-              </div>
+              ) : (
+                <div className="p-3 rounded-2xl liquid-glass-subtle border border-emerald-500/20 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-[10px] text-white/40 block">Account Role</span>
+                    <span className="font-semibold text-emerald-400 flex items-center gap-1">
+                      <ShoppingBag className="w-3 h-3" /> Shopper Account ({buyerName})
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setStep(3)}
+                    className="text-[10px] text-white/60 hover:text-emerald-400 underline"
+                  >
+                    Edit
+                  </button>
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">

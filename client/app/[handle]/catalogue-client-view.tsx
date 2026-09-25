@@ -9,6 +9,7 @@ import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { apiClient } from "@/lib/api-client";
 import { triggerPaystackCheckout } from "@/lib/paystack";
+import { useAuth } from "@/lib/auth-context";
 import {
   ShoppingBag,
   Sparkles,
@@ -23,6 +24,7 @@ import {
   ChevronLeft,
   AlertCircle,
   Copy,
+  UserCheck,
   Eye,
   X,
   Layers,
@@ -83,6 +85,8 @@ export function CatalogueClientView({
   const [storyImageIndex, setStoryImageIndex] = useState(0);
   const [storyPaused, setStoryPaused] = useState(false);
 
+  const { user: currentUser } = useAuth();
+
   // Checkout modal state
   const [activeProduct, setActiveProduct] = useState<any | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<any | null>(null);
@@ -96,6 +100,15 @@ export function CatalogueClientView({
   const [couponError, setCouponError] = useState("");
   const [checkingOut, setCheckingOut] = useState(false);
   const [checkoutSuccess, setCheckoutSuccess] = useState<any | null>(null);
+
+  // Auto-populate customer info if logged in as buyer or user
+  useEffect(() => {
+    if (currentUser) {
+      if (currentUser.name && !buyerName) setBuyerName(currentUser.name);
+      if (currentUser.email && !buyerEmail) setBuyerEmail(currentUser.email);
+      if (currentUser.phone && !buyerPhone) setBuyerPhone(currentUser.phone);
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     async function loadCatalogue() {
@@ -182,6 +195,7 @@ export function CatalogueClientView({
           productId: activeProduct.id,
           variantId: selectedVariant?.id,
           quantity: 1,
+          buyerId: currentUser?.id,
           buyerName,
           buyerEmail,
           buyerPhone,
@@ -768,6 +782,17 @@ export function CatalogueClientView({
                           </button>
                         ))}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Logged in buyer banner */}
+                  {currentUser && (
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between text-xs text-emerald-300">
+                      <span className="flex items-center gap-1.5 font-medium text-[11px]">
+                        <UserCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        Signed in as <strong className="text-white">{currentUser.name}</strong>
+                      </span>
+                      <span className="text-[10px] text-emerald-400/80">Auto-filled</span>
                     </div>
                   )}
 
