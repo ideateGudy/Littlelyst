@@ -17,6 +17,7 @@ import {
 
 import { Logo } from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 export default function DashboardLayout({
   children,
@@ -56,6 +57,10 @@ export default function DashboardLayout({
       router.push("/buyer");
     }
   }, [user, loading, router]);
+
+  if (loading || !user) {
+    return <LoadingScreen fullScreen message="Loading merchant dashboard..." subMessage="Authenticating store session" />;
+  }
 
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col transition-colors duration-200">

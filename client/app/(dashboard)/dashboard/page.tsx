@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { uploadToCloudinary } from "@/lib/cloudinary-upload";
 import { CountdownTimer } from "@/components/ui/countdown-timer";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 interface ProductItem {
   id: string;
@@ -348,6 +349,10 @@ export default function DashboardPage() {
     setCopiedGbp(true);
     setTimeout(() => setCopiedGbp(false), 2000);
   };
+
+  if (loading) {
+    return <LoadingScreen message="Syncing catalogue & metrics..." subMessage="Fetching your products, orders, and sales trends" />;
+  }
 
   return (
     <div className="space-y-8 pb-12">

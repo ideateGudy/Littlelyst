@@ -25,6 +25,7 @@ import {
   Sparkles,
   Banknote,
 } from "lucide-react";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 interface AdminUser {
   id: string;
@@ -42,6 +43,8 @@ interface AdminUser {
   totalVolumeMinor?: string;
   sellerEarnedMinor?: string;
   platformFeeMinor?: string;
+  isRegisteredStore?: boolean;
+  accountClassification?: "REGISTERED_STORE" | "STORE_IN_BUYER_MODE" | "ACTIVE_BUYER";
 }
 
 interface FinancialOverview {
@@ -51,6 +54,9 @@ interface FinancialOverview {
   totalPaidOrders: number;
   totalAllOrders: number;
   totalStores: number;
+  registeredStores?: number;
+  activeBuyers?: number;
+  totalUsers?: number;
 }
 
 export default function AdminPage() {
@@ -216,17 +222,23 @@ export default function AdminPage() {
     const matchesRole =
       roleFilter === "ALL"
         ? true
-        : roleFilter === "SUPER_ADMIN"
-        ? u.role === "super-admin" || u.systemUser === true
-        : roleFilter === "ADMIN"
-        ? u.role === "admin"
-        : u.role === "seller" || (!u.role && !u.systemUser);
+        : roleFilter === "STORES"
+        ? u.isRegisteredStore === true || u.role === "seller"
+        : roleFilter === "BUYERS"
+        ? u.role === "buyer" && !u.isRegisteredStore
+        : roleFilter === "ADMINS"
+        ? u.role === "admin" || u.role === "super-admin" || u.systemUser === true
+        : true;
 
     return matchesSearch && matchesRole;
   });
 
-  const totalSellers = users.filter((u) => u.role === "seller" || !u.role).length;
-  const totalAdmins = users.filter((u) => u.role === "admin" || u.role === "super-admin" || u.systemUser).length;
+  const registeredStoresCount = financials?.registeredStores ?? users.filter((u) => u.isRegisteredStore || u.role === "seller").length;
+  const activeBuyersCount = financials?.activeBuyers ?? users.filter((u) => u.role === "buyer" && !u.isRegisteredStore).length;
+
+  if (loading) {
+    return <LoadingScreen message="Loading platform overview..." subMessage="Aggregating store payouts, platform fees, and accounts" />;
+  }
 
   return (
     <div className="space-y-8 pb-12">
@@ -243,7 +255,7 @@ export default function AdminPage() {
             Platform Overview & Store Payouts
           </h1>
           <p className="text-xs sm:text-sm text-white/50">
-            Real-time platform fee earnings, total store sales, and registered merchant stores.
+            Real-time platform fee earnings, registered merchant stores, and active shopper accounts.
           </p>
         </div>
 
@@ -267,8 +279,8 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Primary Financial Overview Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Primary Financial & User Metrics Overview Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Platform Revenue (Fee Earned) */}
         <div className="liquid-glass-card rounded-2xl p-5 space-y-2 border border-emerald-500/20 bg-gradient-to-br from-emerald-500/[0.07] via-transparent to-transparent">
           <div className="flex items-center justify-between text-xs text-emerald-400 font-semibold">
@@ -283,7 +295,7 @@ export default function AdminPage() {
           <p className="text-2xl sm:text-3xl font-black text-emerald-400">
             {formatNaira(financials?.platformEarnedMinor || "0")}
           </p>
-          <p className="text-[11px] text-white/40">Total revenue retained from processed orders</p>
+          <p className="text-[11px] text-white/40">Total revenue retained from orders</p>
         </div>
 
         {/* Paid Out / Sent to Stores */}
@@ -300,7 +312,7 @@ export default function AdminPage() {
           <p className="text-2xl sm:text-3xl font-black text-cyan-400">
             {formatNaira(financials?.storesPaidMinor || "0")}
           </p>
-          <p className="text-[11px] text-white/40">Settled to store bank accounts via Paystack</p>
+          <p className="text-[11px] text-white/40">Settled to store bank accounts</p>
         </div>
 
         {/* Total GMV (Gross Merchandise Volume) */}
@@ -308,17 +320,17 @@ export default function AdminPage() {
           <div className="flex items-center justify-between text-xs text-purple-400 font-semibold">
             <span className="flex items-center gap-1.5">
               <TrendingUp className="w-4 h-4" />
-              Total Sales Volume (GMV)
+              Total GMV
             </span>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/30">
-              GMV
+              Volume
             </span>
           </div>
           <p className="text-2xl sm:text-3xl font-black text-white">
             {formatNaira(financials?.totalVolumeMinor || "0")}
           </p>
           <p className="text-[11px] text-white/40">
-            Across {financials?.totalPaidOrders || 0} successful customer checkouts
+            Across {financials?.totalPaidOrders || 0} customer orders
           </p>
         </div>
 
@@ -330,33 +342,68 @@ export default function AdminPage() {
               Registered Stores
             </span>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30">
-              Sellers
+              Active & Switched
             </span>
           </div>
           <p className="text-2xl sm:text-3xl font-black text-amber-400">
-            {users.length}
+            {registeredStoresCount}
           </p>
           <p className="text-[11px] text-white/40">
-            {users.reduce((acc, u) => acc + (u.productCount || 0), 0)} products listed across all stores
+            {users.reduce((acc, u) => acc + (u.productCount || 0), 0)} listed products across platform
           </p>
+        </div>
+
+        {/* Active Buyers */}
+        <div className="liquid-glass-card rounded-2xl p-5 space-y-2 border border-blue-500/20 bg-gradient-to-br from-blue-500/[0.07] via-transparent to-transparent">
+          <div className="flex items-center justify-between text-xs text-blue-400 font-semibold">
+            <span className="flex items-center gap-1.5">
+              <Users className="w-4 h-4" />
+              Active Buyers
+            </span>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/20 border border-blue-500/30">
+              Shoppers
+            </span>
+          </div>
+          <p className="text-2xl sm:text-3xl font-black text-blue-400">
+            {activeBuyersCount}
+          </p>
+          <p className="text-[11px] text-white/40">Basic customer buyer accounts</p>
         </div>
       </div>
 
-      {/* Filter and Search Bar for Stores */}
+      {/* Filter Tabs and Search Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
           <Search className="w-4 h-4 text-white/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search stores by name, email, or @handle..."
+            placeholder="Search users by name, email, or @handle..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-white/40 focus:border-amber-400 focus:outline-none"
+            className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-white/40 focus:border-amber-400 focus:outline-none"
           />
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-white/60">
-          <span className="font-mono text-emerald-400 font-bold">{filteredUsers.length}</span> stores listed
+        {/* Category Tabs: All, Stores, Buyers, Admins */}
+        <div className="flex items-center gap-1.5 bg-white/5 p-1 rounded-xl border border-white/10 overflow-x-auto">
+          {[
+            { key: "ALL", label: `All (${users.length})` },
+            { key: "STORES", label: `Stores (${registeredStoresCount})` },
+            { key: "BUYERS", label: `Buyers (${activeBuyersCount})` },
+            { key: "ADMINS", label: "Admins" },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setRoleFilter(tab.key)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                roleFilter === tab.key
+                  ? "bg-amber-400 text-black font-extrabold shadow-sm"
+                  : "text-white/60 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -420,13 +467,17 @@ export default function AdminPage() {
                                 <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono border border-amber-500/30 font-bold">
                                   Admin
                                 </span>
-                              ) : u.role === "buyer" ? (
-                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono border border-blue-500/30">
-                                  Buyer
+                              ) : u.accountClassification === "STORE_IN_BUYER_MODE" ? (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono border border-cyan-500/30 font-semibold" title="Registered store currently browsing in buyer mode">
+                                  Store (In Shopper Mode)
+                                </span>
+                              ) : u.isRegisteredStore || u.role === "seller" ? (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono border border-emerald-500/30 font-semibold">
+                                  Registered Store
                                 </span>
                               ) : (
-                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono border border-emerald-500/30">
-                                  Seller
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono border border-blue-500/30">
+                                  Active Buyer
                                 </span>
                               )}
                             </div>

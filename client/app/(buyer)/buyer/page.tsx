@@ -23,6 +23,7 @@ import {
   Calendar,
   Sparkles,
 } from "lucide-react";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 interface BuyerOrder {
   id: string;
@@ -100,6 +101,10 @@ export default function BuyerDashboardPage() {
 
   const paidOrders = orders.filter((o) => o.status === "PAID" || o.status === "FULFILLED");
   const totalSpentMinor = paidOrders.reduce((sum, o) => sum + BigInt(o.totalMinor), 0n);
+
+  if (loading) {
+    return <LoadingScreen message="Loading your purchases..." subMessage="Fetching receipts and digital downloads" />;
+  }
 
   return (
     <div className="space-y-6">

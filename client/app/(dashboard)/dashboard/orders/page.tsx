@@ -27,6 +27,7 @@ import {
   PackageCheck,
   ChevronDown,
 } from "lucide-react";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 interface OrderItem {
   id: string;
@@ -144,6 +145,10 @@ export default function OrdersPage() {
 
   const totalDeliveredOrders = orders.filter((o) => o.status === "FULFILLED").length;
   const totalPaidOrders = orders.filter((o) => o.status === "PAID" || o.status === "FULFILLED").length;
+
+  if (loading) {
+    return <LoadingScreen message="Loading store orders..." subMessage="Fetching buyer payments and fulfillment tracking" />;
+  }
 
   return (
     <div className="space-y-8 pb-12">

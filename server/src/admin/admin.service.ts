@@ -85,13 +85,25 @@ export class AdminService {
         sellerEarnedMinor: "0",
         platformFeeMinor: "0",
       };
+      const pCount = productCountMap.get(u.id) || 0;
+      // A user is a registered store if they currently have seller role, have products, or created a custom store handle
+      const isRegisteredStore =
+        u.role === "seller" ||
+        pCount > 0 ||
+        (Boolean(u.handle) && !u.handle.startsWith("buyer") && u.handle !== "store");
+
       return {
         ...u,
-        productCount: productCountMap.get(u.id) || 0,
+        productCount: pCount,
         orderCount: stats.orderCount,
         totalVolumeMinor: stats.totalVolumeMinor,
         sellerEarnedMinor: stats.sellerEarnedMinor,
         platformFeeMinor: stats.platformFeeMinor,
+        isRegisteredStore,
+        // Detailed classification
+        accountClassification: isRegisteredStore
+          ? (u.role === "buyer" ? "STORE_IN_BUYER_MODE" : "REGISTERED_STORE")
+          : "ACTIVE_BUYER",
       };
     });
   }
@@ -108,10 +120,44 @@ export class AdminService {
       })
       .from(orders);
 
-    const storeCount = await this.db
-      .select({ count: count(users.id) })
-      .from(users)
-      .where(eq(users.role, "seller"));
+    // Fetch all users and product counts to accurately categorize registered stores vs active buyers
+    const allUsers = await this.db
+      .select({
+        id: users.id,
+        role: users.role,
+        handle: users.handle,
+      })
+      .from(users);
+
+    const productCounts = await this.db
+      .select({
+        sellerId: products.sellerId,
+        count: count(products.id),
+      })
+      .from(products)
+      .groupBy(products.sellerId);
+
+    const productCountMap = new Map<string, number>();
+    productCounts.forEach((pc) => {
+      productCountMap.set(pc.sellerId, Number(pc.count));
+    });
+
+    let registeredStores = 0;
+    let activeBuyers = 0;
+
+    allUsers.forEach((u) => {
+      const pCount = productCountMap.get(u.id) || 0;
+      const isStore =
+        u.role === "seller" ||
+        pCount > 0 ||
+        (Boolean(u.handle) && !u.handle.startsWith("buyer") && u.handle !== "store");
+
+      if (isStore) {
+        registeredStores++;
+      } else if (u.role === "buyer") {
+        activeBuyers++;
+      }
+    });
 
     const row = stats[0] || {
       totalVolumeMinor: "0",
@@ -127,7 +173,10 @@ export class AdminService {
       storesPaidMinor: row.storesPaidMinor,
       totalPaidOrders: Number(row.totalPaidOrders),
       totalAllOrders: Number(row.totalAllOrders),
-      totalStores: Number(storeCount[0]?.count || 0),
+      totalStores: registeredStores,
+      registeredStores,
+      activeBuyers,
+      totalUsers: allUsers.length,
     };
   }
 

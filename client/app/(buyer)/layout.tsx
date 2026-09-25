@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 export default function BuyerDashboardLayout({
   children,
@@ -39,6 +40,10 @@ export default function BuyerDashboardLayout({
       }
     }
   }, [user, loading, router]);
+
+  if (loading || !user) {
+    return <LoadingScreen fullScreen message="Loading shopper portal..." subMessage="Fetching your order profile" />;
+  }
 
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col transition-colors duration-200">
