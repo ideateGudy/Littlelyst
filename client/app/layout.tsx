@@ -96,34 +96,17 @@ export default function RootLayout({
     <html lang="en" className="dark scroll-smooth" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         {/*
-          Theme initializer: runs synchronously before paint to prevent FOUC.
-          Must use Next.js <Script strategy="beforeInteractive"> — not a bare <script> tag —
-          to avoid the React hydration warning about scripts inside components.
+          Theme initializer served as a static file from /public/theme-init.js.
+          Using an external src avoids any JSX <script> / dangerouslySetInnerHTML
+          in the component tree, which is what triggers the React warning in
+          Turbopack dev mode. The file is tiny and loads synchronously before
+          first paint, preventing theme flash.
         */}
-        <Script
-          id="theme-initializer"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              try {
-                var saved = localStorage.getItem('littlelyst-theme');
-                var root = document.documentElement;
-                if (saved === 'light') {
-                  root.classList.remove('dark'); root.classList.add('light');
-                  root.setAttribute('data-theme', 'light');
-                  root.style.colorScheme = 'light';
-                } else {
-                  root.classList.add('dark'); root.classList.remove('light');
-                  root.setAttribute('data-theme', 'dark');
-                  root.style.colorScheme = 'dark';
-                }
-              } catch(e) {}
-            `,
-          }}
-        />
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script src="/theme-init.js" />
       </head>
       <body className="antialiased min-h-screen bg-[#050505] text-[#e5e4e2] overflow-x-hidden selection:bg-emerald-500 selection:text-black">
-        {/* Paystack inline.js — loads async, no blocking */}
+        {/* Paystack inline.js — loads async after page is interactive */}
         <Script src="https://js.paystack.co/v2/inline.js" strategy="lazyOnload" />
 
         {/* No Context Providers — all state is Zustand. AppInitializer boots auth + theme. */}
