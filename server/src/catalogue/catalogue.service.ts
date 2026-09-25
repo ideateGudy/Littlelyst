@@ -27,13 +27,14 @@ export class CatalogueService {
         bio: users.bio,
         avatarUrl: users.avatarUrl,
         createdAt: users.createdAt,
+        role: users.role,
       })
       .from(users)
       .where(eq(users.handle, cleanHandle))
       .limit(1);
 
     const seller = sellerList[0];
-    if (!seller) {
+    if (!seller || seller.role === "buyer") {
       throw new NotFoundException({
         status: "failed",
         message: `Catalogue @${handle} not found`,
@@ -138,13 +139,14 @@ export class CatalogueService {
         handle: users.handle,
         bio: users.bio,
         avatarUrl: users.avatarUrl,
+        role: users.role,
       })
       .from(users)
       .where(eq(users.handle, cleanHandle))
       .limit(1);
 
     const seller = sellerList[0];
-    if (!seller) {
+    if (!seller || seller.role === "buyer") {
       throw new NotFoundException({
         status: "failed",
         message: `Catalogue @${handle} not found`,

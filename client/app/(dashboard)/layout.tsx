@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { apiClient } from "@/lib/api-client";
 import {
   Wallet,
   ShoppingBag,
@@ -22,8 +23,27 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, updateUser } = useAuth();
   const router = useRouter();
+  const [switchingToBuyer, setSwitchingToBuyer] = useState(false);
+
+  const handleSwitchToBuyer = async () => {
+    try {
+      setSwitchingToBuyer(true);
+      const res = await apiClient<{ status: string; user: any; message?: string }>("/api/auth/switch-role", {
+        method: "POST",
+        body: JSON.stringify({ targetRole: "buyer" }),
+      });
+      if (res.user) {
+        updateUser(res.user);
+        router.push("/buyer");
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to switch to shopper mode");
+    } finally {
+      setSwitchingToBuyer(false);
+    }
+  };
 
   useEffect(() => {
     // If auth state resolved and no user, route to login
@@ -85,6 +105,16 @@ export default function DashboardLayout({
                 <span>Super Admin</span>
               </Link>
             )}
+
+            <button
+              onClick={handleSwitchToBuyer}
+              disabled={switchingToBuyer}
+              className="hidden sm:flex text-xs font-semibold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-3 py-1.5 rounded-xl hover:bg-cyan-500/20 transition-all items-center gap-1.5 disabled:opacity-50"
+              title="Switch to Shopper / Buyer mode"
+            >
+              <User className="w-3.5 h-3.5 text-cyan-400" />
+              <span>{switchingToBuyer ? "Switching..." : "Shopper Mode"}</span>
+            </button>
 
             <Link
               href="/dashboard/new"

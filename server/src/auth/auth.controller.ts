@@ -14,6 +14,7 @@ import type { Response, Request } from "express";
 import { AuthService } from "./auth.service.js";
 import { RegisterDto } from "./dto/register.dto.js";
 import { LoginDto } from "./dto/login.dto.js";
+import { SwitchRoleDto } from "./dto/switch-role.dto.js";
 import { AccessTokenGuard } from "../common/guards/jwt-auth.guard.js";
 import {
   CurrentUser,
@@ -269,4 +270,31 @@ export class AuthController {
       user: updated,
     };
   }
+
+  @Post("switch-role")
+  @UseGuards(AccessTokenGuard)
+  @HttpCode(HttpStatus.OK)
+  async switchRole(
+    @CurrentUser() user: CurrentUserPayload,
+    @Req() req: Request,
+    @Body() body: SwitchRoleDto,
+  ) {
+    const userId = user?.id || (req as any).session?.userId;
+    const updated = await this.authService.switchRole(
+      userId,
+      body.targetRole,
+      body.handle,
+    );
+
+    if ((req as any).session) {
+      (req as any).session.user = updated;
+    }
+
+    return {
+      status: "success",
+      message: `Switched account role to ${body.targetRole} successfully`,
+      user: updated,
+    };
+  }
 }
+

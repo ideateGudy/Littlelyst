@@ -1,4 +1,5 @@
 import type { Metadata, ResolvingMetadata } from "next";
+import { notFound } from "next/navigation";
 import { CatalogueClientView } from "./catalogue-client-view";
 import type { CatalogueData } from "./catalogue-client-view";
 
@@ -82,6 +83,10 @@ export default async function PublicCatalogueServerPage(props: {
 }) {
   const { handle } = await props.params;
   const initialData = await getCatalogueData(handle);
+
+  if (!initialData) {
+    notFound();
+  }
 
   return <CatalogueClientView initialData={initialData} handle={handle} />;
 }

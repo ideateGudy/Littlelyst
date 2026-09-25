@@ -323,6 +323,68 @@ export class AuthService {
       avatarUrl: updated.avatarUrl,
       paystackBankName: updated.paystackBankName,
       paystackAccountNumber: updated.paystackAccountNumber,
+      role: (updated as any).role || "seller",
+      systemUser: updated.systemUser === true || (updated as any).role === "super-admin",
+    };
+  }
+
+  async switchRole(
+    userId: string,
+    targetRole: "seller" | "buyer",
+    requestedHandle?: string,
+  ) {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new NotFoundException({
+        status: "failed",
+        message: "User not found",
+      });
+    }
+
+    // Do not allow demoting super-admin or admin via self-service switch
+    if (user.role === "super-admin" || user.role === "admin") {
+      throw new ConflictException({
+        status: "failed",
+        message: "Admin accounts cannot switch roles using the customer toggle",
+      });
+    }
+
+    let finalHandle = user.handle;
+    if (targetRole === "seller") {
+      // If switching to seller and current handle is missing or generic default, generate/verify
+      if (requestedHandle) {
+        const clean = requestedHandle.toLowerCase().trim().replace(/[^a-z0-9-_]/g, "");
+        const existing = await this.usersService.findByHandle(clean);
+        if (existing && existing.id !== userId) {
+          throw new ConflictException({
+            status: "failed",
+            message: "The requested store handle is already in use",
+          });
+        }
+        finalHandle = clean;
+      } else if (!finalHandle || finalHandle.startsWith("buyer")) {
+        finalHandle = await this.usersService.generateUniqueHandle(user.name);
+      }
+    }
+
+    const updated = await this.usersService.updateProfile(userId, {
+      role: targetRole,
+      handle: finalHandle,
+    });
+
+    return {
+      id: updated.id,
+      name: updated.name,
+      email: updated.email,
+      handle: updated.handle,
+      phone: updated.phone,
+      bio: updated.bio,
+      avatarUrl: updated.avatarUrl,
+      paystackBankName: updated.paystackBankName,
+      paystackAccountNumber: updated.paystackAccountNumber,
+      role: (updated as any).role || targetRole,
+      systemUser: updated.systemUser === true || (updated as any).role === "super-admin",
     };
   }
 }
+

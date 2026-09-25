@@ -120,7 +120,7 @@ export default function BuyerDashboardPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <button
               onClick={fetchPurchases}
               disabled={refreshing}
@@ -132,9 +132,16 @@ export default function BuyerDashboardPage() {
             </button>
             <Link
               href="/buyer/profile"
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-400 text-black font-extrabold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:opacity-95 transition-all"
+              className="px-3.5 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all"
             >
               <span>Auto-Fill Details</span>
+            </Link>
+            <Link
+              href="/buyer/profile#mode-toggle"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 text-black font-extrabold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:opacity-95 transition-all"
+            >
+              <ShoppingBag className="w-3.5 h-3.5" />
+              <span>Start Selling</span>
             </Link>
           </div>
         </div>

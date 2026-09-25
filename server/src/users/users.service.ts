@@ -108,6 +108,7 @@ export class UsersService {
       avatarUrl?: string;
       paystackBankName?: string;
       paystackAccountNumber?: string;
+      role?: "seller" | "admin" | "super-admin" | "buyer";
     },
   ): Promise<User> {
     if (data.handle) {
@@ -132,6 +133,7 @@ export class UsersService {
         ...(data.avatarUrl !== undefined ? { avatarUrl: data.avatarUrl } : {}),
         ...(data.paystackBankName ? { paystackBankName: data.paystackBankName } : {}),
         ...(data.paystackAccountNumber ? { paystackAccountNumber: data.paystackAccountNumber } : {}),
+        ...(data.role ? { role: data.role } : {}),
       })
       .where(eq(users.id, userId))
       .returning();

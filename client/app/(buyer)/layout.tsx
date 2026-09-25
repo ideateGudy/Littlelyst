@@ -70,6 +70,15 @@ export default function BuyerDashboardLayout({
               Checkout Profile
             </Link>
 
+            {/* Quick Switch to Seller Mode */}
+            <Link
+              href="/buyer/profile#mode-toggle"
+              className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5"
+            >
+              <ShoppingBag className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Seller Mode</span>
+            </Link>
+
             {(user?.role === "super-admin" ||
               user?.role === "admin" ||
               user?.systemUser === true) && (
@@ -119,6 +128,14 @@ export default function BuyerDashboardLayout({
         >
           <User className="w-4 h-4 text-emerald-400" />
           <span>Profile</span>
+        </Link>
+
+        <Link
+          href="/buyer/profile#mode-toggle"
+          className="flex flex-col items-center gap-1 text-[11px] font-semibold text-emerald-400"
+        >
+          <ShoppingBag className="w-4 h-4 text-emerald-400" />
+          <span>Sell</span>
         </Link>
 
         <button
