@@ -53,4 +53,6 @@ async function bootstrap() {
   console.log(`Littlelyst API server running with express-session on port ${port}`);
 }
 
-await bootstrap();
+if (!process.env.VERCEL) {
+  await bootstrap();
+}
