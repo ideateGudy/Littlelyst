@@ -216,7 +216,7 @@ export default function RegisterPage() {
       if (res.user) {
         login(res.user);
         if (isBuyer) {
-          router.push("/");
+          router.push("/buyer");
         } else {
           router.push("/dashboard");
         }
@@ -292,10 +292,10 @@ export default function RegisterPage() {
         {/* Step Progress Indicators */}
         <div className="flex items-center justify-between mb-6 px-1">
           {[
-            { num: 1, label: "Mobile" },
+            { num: 1, label: otpChannel === "email" ? "Email" : "Mobile" },
             { num: 2, label: "Verify" },
-            { num: 3, label: "Brand" },
-            { num: 4, label: "Login" },
+            { num: 3, label: selectedRole === "seller" ? "Brand" : "Profile" },
+            { num: 4, label: "Account" },
           ].map((s) => (
             <div key={s.num} className="flex flex-col items-center gap-1.5 flex-1 relative">
               <div
@@ -752,6 +752,10 @@ export default function RegisterPage() {
                 >
                   {loading ? (
                     <span className="w-4 h-4 rounded-full border-2 border-black border-t-transparent animate-spin" />
+                  ) : selectedRole === "buyer" ? (
+                    <>
+                      Complete Registration <ArrowRight className="w-3.5 h-3.5" />
+                    </>
                   ) : (
                     <>
                       Launch My Storefront <Sparkles className="w-3.5 h-3.5" />
@@ -765,7 +769,7 @@ export default function RegisterPage() {
 
         {/* Footer */}
         <div className="mt-6 pt-4 border-t border-white/5 text-center text-xs text-white/50">
-          Already have a catalogue?{" "}
+          Already have an account?{" "}
           <Link href="/login" className="text-emerald-400 hover:underline font-semibold">
             Sign in
           </Link>

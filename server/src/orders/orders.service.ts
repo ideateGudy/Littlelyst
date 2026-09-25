@@ -4,7 +4,7 @@ import {
   NotFoundException,
   Inject,
 } from "@nestjs/common";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, or, desc, sql } from "drizzle-orm";
 import crypto from "crypto";
 import { DRIZZLE } from "../db/index.js";
 import type { DrizzleDb } from "../db/index.js";
@@ -292,6 +292,46 @@ export class OrdersService {
       totalMinor: o.totalMinor.toString(),
       sellerNetMinor: o.sellerNetMinor.toString(),
       platformFeeMinor: o.platformFeeMinor.toString(),
+    }));
+  }
+
+  async listBuyerOrders(buyerId: string, buyerEmail?: string) {
+    const condition = buyerEmail
+      ? or(eq(orders.buyerId, buyerId), eq(orders.buyerEmail, buyerEmail.toLowerCase().trim()))
+      : eq(orders.buyerId, buyerId);
+
+    const list = await this.db
+      .select({
+        id: orders.id,
+        buyerName: orders.buyerName,
+        buyerEmail: orders.buyerEmail,
+        buyerPhone: orders.buyerPhone,
+        buyerAddress: orders.buyerAddress,
+        productTitle: products.title,
+        productType: products.productType,
+        images: products.images,
+        digitalFileUrl: products.digitalFileUrl,
+        digitalKeyOrNote: products.digitalKeyOrNote,
+        sellerName: users.name,
+        sellerHandle: users.handle,
+        quantity: orders.quantity,
+        totalMinor: orders.totalMinor,
+        status: orders.status,
+        paystackReference: orders.paystackReference,
+        paidAt: orders.paidAt,
+        createdAt: orders.createdAt,
+      })
+      .from(orders)
+      .innerJoin(products, eq(orders.productId, products.id))
+      .innerJoin(users, eq(orders.sellerId, users.id))
+      .where(condition)
+      .orderBy(desc(orders.createdAt));
+
+    return list.map((o) => ({
+      ...o,
+      totalMinor: o.totalMinor.toString(),
+      digitalFileUrl: o.status === "PAID" ? o.digitalFileUrl : null,
+      digitalKeyOrNote: o.status === "PAID" ? o.digitalKeyOrNote : null,
     }));
   }
 

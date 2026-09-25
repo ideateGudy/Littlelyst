@@ -32,7 +32,11 @@ export default function LoginPage() {
 
       if (res.user) {
         login(res.user);
-        router.push("/dashboard");
+        if (res.user.role === "buyer") {
+          router.push("/buyer");
+        } else {
+          router.push("/dashboard");
+        }
       } else {
         throw new Error(res.message || "Failed to log in");
       }
@@ -55,10 +59,10 @@ export default function LoginPage() {
         <div className="text-center space-y-1.5 mb-8">
           <Logo iconOnly size="lg" className="mx-auto mb-2" />
           <h1 className="text-2xl font-black text-white tracking-tight">
-            Littlelyst Seller Login
+            Welcome Back to Littlelyst
           </h1>
           <p className="text-xs text-white/50">
-            Sign in to manage your product catalogue, track promotions & orders.
+            Sign in to your merchant store or your shopper purchase portal.
           </p>
         </div>
 
@@ -116,7 +120,7 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 text-center text-xs text-white/50">
-          New seller?{" "}
+          Don't have an account?{" "}
           <Link href="/register" className="text-emerald-400 hover:underline font-semibold">
             Create an account
           </Link>

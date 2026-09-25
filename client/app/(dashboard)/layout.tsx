@@ -32,6 +32,8 @@ export default function DashboardLayout({
       if (typeof document !== "undefined" && !document.cookie.includes("littlelyst_logged_in=1")) {
         router.push("/login");
       }
+    } else if (!loading && user?.role === "buyer") {
+      router.push("/buyer");
     }
   }, [user, loading, router]);
 

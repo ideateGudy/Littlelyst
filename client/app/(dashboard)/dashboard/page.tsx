@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { apiClient } from "@/lib/api-client";
 import { motion, AnimatePresence } from "motion/react";
@@ -64,6 +65,7 @@ interface AnalyticsData {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { user, updateUser } = useAuth();
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
@@ -215,8 +217,12 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    if (user?.role === "buyer") {
+      router.push("/buyer");
+      return;
+    }
     fetchDashboardData();
-  }, []);
+  }, [user, router]);
 
   const handleStartEditHandle = () => {
     setNewHandle(user?.handle || "");

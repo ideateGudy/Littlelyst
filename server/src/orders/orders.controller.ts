@@ -43,6 +43,18 @@ export class OrdersController {
     };
   }
 
+  // Buyer Protected Orders History & Purchases
+  @Get("my-purchases")
+  @UseGuards(AccessTokenGuard)
+  async getBuyerOrders(@CurrentUser() user: CurrentUserPayload) {
+    const data = await this.ordersService.listBuyerOrders(user.id, user.email);
+    return {
+      status: "success",
+      message: "Buyer orders retrieved",
+      data,
+    };
+  }
+
   // Seller Protected Dashboard Orders
   @Get()
   @UseGuards(AccessTokenGuard)

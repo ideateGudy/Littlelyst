@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
 import { apiClient } from "@/lib/api-client";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -44,6 +46,8 @@ interface OrderItem {
 }
 
 export default function OrdersPage() {
+  const router = useRouter();
+  const { user } = useAuth();
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -68,8 +72,12 @@ export default function OrdersPage() {
   };
 
   useEffect(() => {
+    if (user?.role === "buyer") {
+      router.push("/buyer");
+      return;
+    }
     fetchOrders();
-  }, []);
+  }, [user, router]);
 
   const handleUpdateStatus = async (
     orderId: string,
