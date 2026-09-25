@@ -21,6 +21,11 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   phone?: string;
+  
+  @IsOptional()
+  @IsString()
+  @Matches(/^(seller|buyer)$/, { message: "Role must be either 'seller' or 'buyer'" })
+  role?: "seller" | "buyer";
 
   @IsNotEmpty({ message: "Password is required" })
   @IsString()

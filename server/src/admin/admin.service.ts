@@ -9,7 +9,7 @@ export interface CreateAdminUserDto {
   name: string;
   email: string;
   password: string;
-  role?: "seller" | "admin" | "super-admin";
+  role?: "seller" | "admin" | "buyer";
   handle?: string;
   phone?: string;
 }
@@ -110,7 +110,8 @@ export class AdminService {
 
     const storeCount = await this.db
       .select({ count: count(users.id) })
-      .from(users);
+      .from(users)
+      .where(eq(users.role, "seller"));
 
     const row = stats[0] || {
       totalVolumeMinor: "0",
@@ -130,14 +131,24 @@ export class AdminService {
     };
   }
 
-  async createUser(dto: CreateAdminUserDto) {
+  async createUser(
+    dto: CreateAdminUserDto,
+    currentUser: { id: string; role?: string; systemUser: boolean },
+  ) {
     const existing = await this.usersService.findByEmail(dto.email);
     if (existing) {
       throw new BadRequestException("A user with this email already exists");
     }
 
     const assignedRole = dto.role || "seller";
-    const isSuper = assignedRole === "super-admin";
+
+    if ((assignedRole as string) === "super-admin") {
+      throw new BadRequestException("Super-admin cannot be created via the API; there is only one super-admin manually set in the database.");
+    }
+
+    if (assignedRole === "admin" && !currentUser.systemUser && currentUser.role !== "super-admin") {
+      throw new BadRequestException("Only the super-admin can create an admin user");
+    }
 
     const user = await this.usersService.create({
       name: dto.name,
@@ -146,7 +157,7 @@ export class AdminService {
       handle: dto.handle,
       phone: dto.phone,
       role: assignedRole,
-      systemUser: isSuper,
+      systemUser: false,
     });
 
     return {
@@ -160,8 +171,20 @@ export class AdminService {
     };
   }
 
-  async updateUserRole(targetUserId: string, newRole: "seller" | "admin" | "super-admin") {
-    const validRoles = ["seller", "admin", "super-admin"];
+  async updateUserRole(
+    targetUserId: string,
+    newRole: "seller" | "admin" | "buyer",
+    currentUser: { id: string; role?: string; systemUser: boolean },
+  ) {
+    if (!currentUser.systemUser && currentUser.role !== "super-admin") {
+      throw new BadRequestException("Only the super-admin can change user roles");
+    }
+
+    if ((newRole as string) === "super-admin") {
+      throw new BadRequestException("The super-admin role cannot be assigned via the API; there can only be one super-admin created manually in the database.");
+    }
+
+    const validRoles = ["seller", "admin", "buyer"];
     if (!validRoles.includes(newRole)) {
       throw new BadRequestException(`Role must be one of: ${validRoles.join(", ")}`);
     }
@@ -171,13 +194,15 @@ export class AdminService {
       throw new NotFoundException("Target user not found");
     }
 
-    const isSuper = newRole === "super-admin";
+    if (targetUser.role === "super-admin" || targetUser.systemUser) {
+      throw new BadRequestException("The super-admin account cannot be demoted or modified.");
+    }
 
     const updated = await this.db
       .update(users)
       .set({
         role: newRole,
-        systemUser: isSuper,
+        systemUser: false,
       })
       .where(eq(users.id, targetUserId))
       .returning();
@@ -191,14 +216,25 @@ export class AdminService {
     };
   }
 
-  async deleteUser(targetUserId: string, currentAdminId: string) {
-    if (targetUserId === currentAdminId) {
+  async deleteUser(
+    targetUserId: string,
+    currentUser: { id: string; role?: string; systemUser: boolean },
+  ) {
+    if (!currentUser.systemUser && currentUser.role !== "super-admin") {
+      throw new BadRequestException("Only the super-admin can delete user accounts");
+    }
+
+    if (targetUserId === currentUser.id) {
       throw new BadRequestException("You cannot delete your own super admin account");
     }
 
     const targetUser = await this.usersService.findById(targetUserId);
     if (!targetUser) {
       throw new NotFoundException("Target user not found");
+    }
+
+    if (targetUser.role === "super-admin" || targetUser.systemUser) {
+      throw new BadRequestException("The super-admin account cannot be deleted");
     }
 
     // Unlink products & wallets or delete safely

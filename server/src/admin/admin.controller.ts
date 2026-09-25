@@ -44,8 +44,11 @@ export class AdminController {
 
   @Post("users")
   @HttpCode(HttpStatus.CREATED)
-  async createUser(@Body() dto: CreateAdminUserDto) {
-    const data = await this.adminService.createUser(dto);
+  async createUser(
+    @Body() dto: CreateAdminUserDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    const data = await this.adminService.createUser(dto, user);
     return {
       status: "success",
       message: "User account created successfully",
@@ -56,9 +59,10 @@ export class AdminController {
   @Put("users/:id/role")
   async updateRole(
     @Param("id") id: string,
-    @Body() body: { role: "seller" | "admin" | "super-admin" },
+    @Body() body: { role: "seller" | "admin" | "buyer" },
+    @CurrentUser() user: CurrentUserPayload,
   ) {
-    const data = await this.adminService.updateUserRole(id, body.role);
+    const data = await this.adminService.updateUserRole(id, body.role, user);
     return {
       status: "success",
       message: "User role updated successfully",
@@ -71,7 +75,7 @@ export class AdminController {
     @Param("id") id: string,
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    const data = await this.adminService.deleteUser(id, user.id);
+    const data = await this.adminService.deleteUser(id, user);
     return data;
   }
 }

@@ -202,20 +202,34 @@ export class PaymentsService {
       }
 
       // Double-entry record settlement into seller's wallet for internal accounting
-      const sellerWalletList = await this.db
-        .select()
-        .from(wallets)
-        .where(eq(wallets.userId, order.sellerId))
-        .limit(1);
+      let sellerWallet = (
+        await this.db
+          .select()
+          .from(wallets)
+          .where(eq(wallets.userId, order.sellerId))
+          .limit(1)
+      )[0];
 
-      if (sellerWalletList[0]) {
+      if (!sellerWallet) {
+        const [createdWallet] = await this.db
+          .insert(wallets)
+          .values({
+            userId: order.sellerId,
+            status: "ACTIVE",
+            currency: "NGN",
+          })
+          .returning();
+        sellerWallet = createdWallet;
+      }
+
+      if (sellerWallet) {
         const idempotencyKey = `paystack_tx_${reference}`;
         try {
           const newTx = await this.db
             .insert(transactions)
             .values({
-              fromWalletId: sellerWalletList[0].id,
-              toWalletId: sellerWalletList[0].id,
+              fromWalletId: sellerWallet.id,
+              toWalletId: sellerWallet.id,
               amountMinor: order.sellerNetMinor,
               status: "COMPLETED",
               idempotencyKey,
@@ -223,7 +237,7 @@ export class PaymentsService {
             .returning();
 
           await this.db.insert(ledgerEntries).values({
-            walletId: sellerWalletList[0].id,
+            walletId: sellerWallet.id,
             transactionId: newTx[0].id,
             type: "CREDIT",
             amountMinor: order.sellerNetMinor,

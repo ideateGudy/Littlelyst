@@ -14,14 +14,14 @@ export class SystemUserGuard implements CanActivate {
     const isSuperAdmin =
       user &&
       (user.systemUser === true ||
-        user.role === "super-admin" ||
-        user.role === "admin" ||
-        user.email === "useprizia@gmail.com");
+        user.role === "super-admin");
 
-    if (!isSuperAdmin) {
+    const isAdmin = user && (isSuperAdmin || user.role === "admin");
+
+    if (!isAdmin) {
       throw new ForbiddenException({
         status: "failed",
-        message: "Forbidden, super-admin privileges required",
+        message: "Forbidden, admin or super-admin privileges required",
       });
     }
 

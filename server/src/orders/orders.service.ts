@@ -25,6 +25,7 @@ export interface GuestCheckoutDto {
   productId: string;
   variantId?: string;
   quantity?: number;
+  buyerId?: string;
   buyerName: string;
   buyerEmail: string;
   buyerPhone?: string;
@@ -189,6 +190,7 @@ export class OrdersService {
       sellerId: dto.sellerId,
       productId: dto.productId,
       variantId: dto.variantId ?? null,
+      buyerId: dto.buyerId ?? null,
       buyerName: dto.buyerName.trim(),
       buyerEmail: dto.buyerEmail.toLowerCase().trim(),
       buyerPhone: dto.buyerPhone?.trim() ?? null,

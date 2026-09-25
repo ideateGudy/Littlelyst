@@ -44,12 +44,14 @@ export class UsersService {
     phone?: string;
     bio?: string;
     avatarUrl?: string;
-    role?: string;
+    role?: "seller" | "admin" | "super-admin" | "buyer";
     systemUser?: boolean;
   }): Promise<User> {
     const passwordHash = await bcrypt.hash(data.password, 10);
+    const assignedRole = data.role || "seller";
     // Generate fallback handle if not provided
-    const baseHandle = (data.handle || data.name.toLowerCase().replace(/[^a-z0-9]/g, "")).slice(0, 30) || "seller";
+    const defaultPrefix = assignedRole === "buyer" ? "buyer" : "seller";
+    const baseHandle = (data.handle || data.name.toLowerCase().replace(/[^a-z0-9]/g, "")).slice(0, 30) || defaultPrefix;
     let finalHandle = baseHandle;
     const existing = await this.findByHandle(finalHandle);
     if (existing) {
@@ -64,8 +66,8 @@ export class UsersService {
       bio: data.bio?.trim() ?? null,
       avatarUrl: data.avatarUrl ?? null,
       passwordHash,
-      role: data.role || "seller",
-      systemUser: data.systemUser ?? (data.role === "super-admin"),
+      role: assignedRole,
+      systemUser: data.systemUser ?? (assignedRole === "super-admin"),
     };
 
     const results = await this.db.insert(users).values(newUser).returning();
