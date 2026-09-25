@@ -10,8 +10,8 @@ This project is a monorepo consisting of:
 
 ## Core Features
 - **Multi-Role Access Control**: 
-  - `buyer`: Can save contact details for quick checkout autofill.
-  - `seller`: Gets a dedicated storefront (`/[handle]`) and a dashboard to manage products, view orders, and track payouts.
+  - `buyer`: Dedicated Shopper Portal (`/buyer`) with order tracking, digital asset downloads, saved checkout autofill profile (`/buyer/profile`), and no merchant storefront.
+  - `seller`: Dedicated merchant dashboard (`/dashboard`) and public storefront (`/[handle]`) to manage products, view orders, and track payouts.
   - `admin`: Accesses the admin console for analytics and financial overviews.
   - `super-admin`: Complete control over the platform, including user role promotion/demotion and account deletion.
 - **Financial Ledger System**: Double-entry bookkeeping for tracking store balances securely.
