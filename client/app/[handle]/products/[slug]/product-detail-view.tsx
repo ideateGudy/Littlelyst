@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { apiClient } from "@/lib/api-client";
 import { triggerPaystackCheckout } from "@/lib/paystack";
 import { CountdownTimer } from "@/components/ui/countdown-timer";
+import { AddToCartModal } from "@/components/ui/add-to-cart-modal";
 import {
   ArrowLeft,
   ShoppingBag,
@@ -55,6 +56,7 @@ export function ProductDetailView({ data }: { data: PublicProductData }) {
 
   // Checkout modal state
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [cartModalOpen, setCartModalOpen] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<any | null>(
     product.variants?.[0] || null
   );
@@ -374,13 +376,22 @@ export function ProductDetailView({ data }: { data: PublicProductData }) {
           )}
         </div>
 
-        {/* Action Button: Instant Purchase */}
-        <div className="pt-2">
+        {/* Action Buttons: Add to Cart & Instant Purchase */}
+        <div className="pt-2 flex flex-col sm:flex-row gap-3">
+          <button
+            type="button"
+            onClick={() => setCartModalOpen(true)}
+            className="flex-1 py-3.5 px-4 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+          >
+            <ShoppingBag className="w-4 h-4 text-emerald-400" />
+            <span>Add to Cart</span>
+          </button>
+
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => setCheckoutOpen(true)}
-            className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 text-black font-extrabold text-sm flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(16,185,129,0.4)] transition-all cursor-pointer"
+            className="flex-[1.5] py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 text-black font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(16,185,129,0.4)] transition-all cursor-pointer"
           >
             <span>Buy Now — {formatNaira(currentPrice)}</span>
             <ArrowRight className="w-4 h-4" />
@@ -609,6 +620,17 @@ export function ProductDetailView({ data }: { data: PublicProductData }) {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Add To Cart Preference & Variant Modal */}
+      <AddToCartModal
+        product={{
+          ...product,
+          sellerId: seller.id,
+        }}
+        sellerHandle={seller.handle}
+        isOpen={cartModalOpen}
+        onClose={() => setCartModalOpen(false)}
+      />
     </div>
   );
 }

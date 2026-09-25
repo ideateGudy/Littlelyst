@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useCart } from "@/lib/cart-context";
 import { triggerPaystackCheckout } from "@/lib/paystack";
 import { apiClient } from "@/lib/api-client";
+import { useAuth } from "@/lib/auth-context";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ShoppingBag,
@@ -15,6 +16,7 @@ import {
   ShieldCheck,
   Zap,
   Check,
+  UserCheck,
 } from "lucide-react";
 
 export function CartSheet() {
@@ -29,18 +31,32 @@ export function CartSheet() {
     totalAmountMinor,
   } = useCart();
 
+  const { user: currentUser } = useAuth();
+
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [buyerName, setBuyerName] = useState("");
   const [buyerEmail, setBuyerEmail] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
   const [buyerAddress, setBuyerAddress] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("card");
+  const [paymentMethod, setPaymentMethod] = useState("paystack");
   const [checkingOut, setCheckingOut] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
   const [checkoutSuccess, setCheckoutSuccess] = useState<any | null>(null);
 
+  // Auto-populate customer information if logged in as buyer or seller
+  useEffect(() => {
+    if (currentUser) {
+      if (currentUser.name && !buyerName) setBuyerName(currentUser.name);
+      if (currentUser.email && !buyerEmail) setBuyerEmail(currentUser.email);
+      if (currentUser.phone && !buyerPhone) setBuyerPhone(currentUser.phone);
+    }
+  }, [currentUser]);
+
   const formatNaira = (minor: number) => {
-    return `₦${(minor / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `₦${(minor / 100).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
   };
 
   const hasPhysical = items.some((i) => i.productType === "PHYSICAL");
@@ -52,7 +68,7 @@ export function CartSheet() {
     setCheckoutError("");
 
     try {
-      // Process first item as primary order checkout or batch
+      // Littlelyst orders are linked per seller. Use the first item to initialize order/commission
       const primaryItem = items[0];
       const res = await apiClient<{
         orderId: string;
@@ -84,9 +100,11 @@ export function CartSheet() {
           amountMinor: totalAmountMinor,
           reference: orderData.paystackReference,
           subaccount: orderData.subaccount,
-          platformFeeMinor: orderData.platformFeeMinor ? Number(orderData.platformFeeMinor) : undefined,
-          buyerName,
-          buyerPhone,
+          platformFeeMinor: orderData.platformFeeMinor
+            ? Number(orderData.platformFeeMinor)
+            : undefined,
+          buyerName: buyerName.trim(),
+          buyerPhone: buyerPhone.trim(),
           selectedChannel: paymentMethod,
           onSuccess: (verifiedRef) => {
             setCheckoutSuccess({
@@ -115,7 +133,7 @@ export function CartSheet() {
 
   return (
     <>
-      {/* Floating Cart Trigger Pill if items exist */}
+      {/* Floating Cart Trigger Pill if items exist and drawer is closed */}
       {totalCount > 0 && !isOpen && (
         <motion.button
           initial={{ scale: 0, opacity: 0 }}
@@ -153,7 +171,7 @@ export function CartSheet() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 280 }}
-              className="relative w-full max-w-md bg-[#0a0a0a] border-l border-white/10 h-full flex flex-col justify-between z-10 shadow-2xl overflow-hidden"
+              className="relative w-full max-w-md bg-[#0a0a0a] text-white border-l border-white/10 h-full flex flex-col justify-between z-10 shadow-2xl overflow-hidden"
             >
               {/* Header */}
               <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between">
@@ -163,12 +181,14 @@ export function CartSheet() {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-white">Your Shopping Cart</h3>
-                    <p className="text-[11px] text-white/50">{totalCount} item{totalCount === 1 ? "" : "s"}</p>
+                    <p className="text-[11px] text-white/50">
+                      {totalCount} item{totalCount === 1 ? "" : "s"}
+                    </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/5 cursor-pointer"
+                  className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/5 cursor-pointer transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -202,9 +222,13 @@ export function CartSheet() {
                           </div>
                         )}
                         <div className="min-w-0">
-                          <h4 className="text-xs font-bold text-white truncate">{item.title}</h4>
+                          <h4 className="text-xs font-bold text-white truncate">
+                            {item.title}
+                          </h4>
                           {item.variantTitle && (
-                            <p className="text-[10px] text-purple-400 font-medium">{item.variantTitle}</p>
+                            <p className="text-[10px] text-purple-400 font-medium">
+                              {item.variantTitle}
+                            </p>
                           )}
                           <div className="flex items-baseline gap-1.5 mt-0.5">
                             <span className="text-xs font-bold text-emerald-400">
@@ -223,21 +247,37 @@ export function CartSheet() {
                       <div className="flex items-center gap-2 shrink-0">
                         <div className="flex items-center bg-black/60 border border-white/10 rounded-lg p-0.5">
                           <button
-                            onClick={() => updateQuantity(item.productId, item.quantity - 1, item.variantId)}
+                            onClick={() =>
+                              updateQuantity(
+                                item.productId,
+                                item.quantity - 1,
+                                item.variantId
+                              )
+                            }
                             className="p-1 text-white/50 hover:text-white cursor-pointer"
                           >
                             <Minus className="w-3 h-3" />
                           </button>
-                          <span className="px-2 text-xs font-mono text-white font-bold">{item.quantity}</span>
+                          <span className="px-2 text-xs font-mono text-white font-bold">
+                            {item.quantity}
+                          </span>
                           <button
-                            onClick={() => updateQuantity(item.productId, item.quantity + 1, item.variantId)}
+                            onClick={() =>
+                              updateQuantity(
+                                item.productId,
+                                item.quantity + 1,
+                                item.variantId
+                              )
+                            }
                             className="p-1 text-white/50 hover:text-white cursor-pointer"
                           >
                             <Plus className="w-3 h-3" />
                           </button>
                         </div>
                         <button
-                          onClick={() => removeItem(item.productId, item.variantId)}
+                          onClick={() =>
+                            removeItem(item.productId, item.variantId)
+                          }
                           className="p-1 text-white/40 hover:text-rose-400 cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -253,7 +293,7 @@ export function CartSheet() {
                 <div className="p-4 sm:p-5 border-t border-white/10 space-y-3 bg-black/40">
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-white/60">Cart Subtotal</span>
-                    <span className="text-base font-extrabold text-white">
+                    <span className="text-base font-extrabold text-white font-mono">
                       {formatNaira(totalAmountMinor)}
                     </span>
                   </div>
@@ -297,13 +337,20 @@ export function CartSheet() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="relative w-full max-w-md bg-[#0d0d0d] border border-white/15 rounded-3xl p-6 space-y-4 shadow-2xl z-10"
+              className="relative w-full max-w-md bg-[#0d0d0d] border border-white/15 rounded-3xl p-5 sm:p-6 space-y-4 shadow-2xl z-10 text-white max-h-[92vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                <h3 className="text-sm font-bold text-white">Guest Checkout Details</h3>
+                <div>
+                  <span className="text-[10px] font-mono uppercase text-emerald-400 font-bold">
+                    Direct Checkout
+                  </span>
+                  <h3 className="text-sm font-bold text-white">
+                    Buyer & Payment Details
+                  </h3>
+                </div>
                 <button
                   onClick={() => setCheckoutOpen(false)}
-                  className="p-1 rounded-lg text-white/40 hover:text-white"
+                  className="p-1 rounded-lg text-white/40 hover:text-white cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -316,7 +363,10 @@ export function CartSheet() {
                   </div>
                   <h4 className="text-base font-bold text-white">Payment Successful!</h4>
                   <p className="text-xs text-white/50">
-                    Reference: <span className="font-mono text-emerald-400">{checkoutSuccess.reference}</span>
+                    Reference:{" "}
+                    <span className="font-mono text-emerald-400">
+                      {checkoutSuccess.reference}
+                    </span>
                   </p>
                   <button
                     onClick={() => {
@@ -324,15 +374,28 @@ export function CartSheet() {
                       setCheckoutOpen(false);
                       setIsOpen(false);
                     }}
-                    className="w-full py-2.5 rounded-xl bg-white/10 text-white font-bold text-xs"
+                    className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs cursor-pointer"
                   >
                     Done
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleCheckout} className="space-y-3">
+                <form onSubmit={handleCheckout} className="space-y-3.5">
+                  {/* Signed-in Buyer Auto-fill notification */}
+                  {currentUser && (
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between text-xs text-emerald-300">
+                      <span className="flex items-center gap-1.5 font-medium text-[11px]">
+                        <UserCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        Signed in as <strong className="text-white">{currentUser.name}</strong>
+                      </span>
+                      <span className="text-[10px] text-emerald-400/80">Auto-filled</span>
+                    </div>
+                  )}
+
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-white/70">Full Name</label>
+                    <label className="text-[11px] font-semibold text-white/70">
+                      Full Name
+                    </label>
                     <input
                       type="text"
                       required
@@ -344,7 +407,9 @@ export function CartSheet() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-white/70">Email Address (For Receipt)</label>
+                    <label className="text-[11px] font-semibold text-white/70">
+                      Email Address (For Receipt & Tracking)
+                    </label>
                     <input
                       type="email"
                       required
@@ -356,7 +421,9 @@ export function CartSheet() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-white/70">Phone Number (WhatsApp)</label>
+                    <label className="text-[11px] font-semibold text-white/70">
+                      Phone Number (WhatsApp)
+                    </label>
                     <input
                       type="tel"
                       required
@@ -370,42 +437,57 @@ export function CartSheet() {
                   {/* Payment Method Selector */}
                   <div className="space-y-1.5 pt-1">
                     <label className="text-[11px] font-semibold text-white/80 uppercase tracking-wider flex items-center justify-between">
-                      <span>Choose Payment Method</span>
-                      <span className="text-[10px] text-emerald-400 font-normal">Via Paystack Secure</span>
+                      <span>Payment Method</span>
+                      <span className="text-[10px] text-emerald-400 font-normal">
+                        Encrypted & Instant
+                      </span>
                     </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { id: "card", name: "Debit / Credit Card", desc: "Mastercard, Visa, Verve" },
-                        { id: "bank_transfer", name: "Bank Transfer", desc: "Instant transfer to account" },
-                        { id: "ussd", name: "USSD (*737#, etc.)", desc: "GTB, Zenith, UBA & more" },
-                        { id: "mobile_money", name: "Mobile Money / Barter", desc: "Opay, PalmPay & wallets" },
-                      ].map((pm) => {
-                        const isSelected = paymentMethod === pm.id;
-                        return (
-                          <button
-                            key={pm.id}
-                            type="button"
-                            onClick={() => setPaymentMethod(pm.id)}
-                            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                              isSelected
-                                ? "border-emerald-400 bg-emerald-500/10 shadow-[0_0_12px_rgba(16,185,129,0.2)]"
-                                : "border-white/10 bg-white/[0.02] hover:border-white/20"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-white line-clamp-1">{pm.name}</span>
-                              {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
-                            </div>
-                            <p className="text-[10px] text-white/40 mt-0.5 line-clamp-1">{pm.desc}</p>
-                          </button>
-                        );
-                      })}
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {/* Paystack - Active */}
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod("paystack")}
+                        className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                          paymentMethod === "paystack"
+                            ? "border-emerald-400 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.25)]"
+                            : "border-white/10 bg-white/[0.02] hover:border-white/20"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-extrabold text-white">
+                            Paystack
+                          </span>
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            Active
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-white/50 mt-1 leading-snug">
+                          Cards, Transfers, USSD & Mobile Money
+                        </p>
+                      </button>
+
+                      {/* Stripe - Coming Soon */}
+                      <div className="p-3 rounded-2xl border border-white/5 bg-white/[0.01] text-left opacity-60 cursor-not-allowed select-none relative overflow-hidden">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white/60">
+                            Stripe
+                          </span>
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-white/10 text-white/50 border border-white/10">
+                            Coming soon
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-white/40 mt-1 leading-snug">
+                          International Cards & Apple Pay
+                        </p>
+                      </div>
                     </div>
                   </div>
 
                   {hasPhysical && (
                     <div className="space-y-1">
-                      <label className="text-[11px] font-semibold text-white/70">Delivery Address</label>
+                      <label className="text-[11px] font-semibold text-white/70">
+                        Delivery Address
+                      </label>
                       <textarea
                         required
                         rows={2}
@@ -417,15 +499,19 @@ export function CartSheet() {
                     </div>
                   )}
 
-                  {checkoutError && <p className="text-[11px] text-rose-400">{checkoutError}</p>}
+                  {checkoutError && (
+                    <p className="text-[11px] text-rose-400">{checkoutError}</p>
+                  )}
 
                   <div className="pt-2">
                     <button
                       type="submit"
                       disabled={checkingOut}
-                      className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:opacity-95 transition-all"
                     >
-                      {checkingOut ? "Connecting to Paystack..." : `Pay ${formatNaira(totalAmountMinor)} Now`}
+                      {checkingOut
+                        ? "Connecting to Paystack..."
+                        : `Pay ${formatNaira(totalAmountMinor)} Now`}
                     </button>
                   </div>
                 </form>

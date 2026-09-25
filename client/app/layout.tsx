@@ -3,6 +3,8 @@ import Script from "next/script";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
+import { CartProvider } from "@/lib/cart-context";
+import { CartSheet } from "@/components/ui/cart-sheet";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -125,7 +127,10 @@ export default function RootLayout({
         />
         <ThemeProvider>
           <AuthProvider>
-            {children}
+            <CartProvider>
+              {children}
+              <CartSheet />
+            </CartProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

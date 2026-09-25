@@ -3,6 +3,7 @@
 import { Logo } from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { CountdownTimer } from "@/components/ui/countdown-timer";
+import { AddToCartModal } from "@/components/ui/add-to-cart-modal";
 
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -90,6 +91,7 @@ export function CatalogueClientView({
   // Checkout modal state
   const [activeProduct, setActiveProduct] = useState<any | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<any | null>(null);
+  const [cartProduct, setCartProduct] = useState<any | null>(null);
   const [buyerName, setBuyerName] = useState("");
   const [buyerEmail, setBuyerEmail] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
@@ -651,37 +653,52 @@ export function CatalogueClientView({
                       )}
                     </div>
 
-                    {/* Action buttons */}
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const originalIdx = catalogue.products.findIndex((p) => p.id === item.id);
-                          setStoryProductIndex(originalIdx >= 0 ? originalIdx : 0);
-                          setStoryImageIndex(0);
-                          setStoryOpen(true);
-                        }}
-                        className="p-2.5 rounded-xl border border-white/10 hover:border-emerald-500/40 text-white/70 hover:text-white text-xs font-semibold flex items-center justify-center cursor-pointer transition-all"
-                        title="View Fullscreen Story"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                      </button>
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const originalIdx = catalogue.products.findIndex((p) => p.id === item.id);
+                            setStoryProductIndex(originalIdx >= 0 ? originalIdx : 0);
+                            setStoryImageIndex(0);
+                            setStoryOpen(true);
+                          }}
+                          className="p-2.5 rounded-xl border border-white/10 hover:border-emerald-500/40 text-white/70 hover:text-white text-xs font-semibold flex items-center justify-center cursor-pointer transition-all"
+                          title="View Fullscreen Story"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
 
-                      <motion.button
-                        whileHover={{ scale: 1.04 }}
-                        whileTap={{ scale: 0.96 }}
-                        onClick={() => {
-                          setActiveProduct(item);
-                          setSelectedVariant(item.variants?.[0] || null);
-                          setCouponApplied(null);
-                          setCheckoutSuccess(null);
-                        }}
-                        className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-extrabold text-xs flex items-center gap-1.5 shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all cursor-pointer"
-                      >
-                        <span>Buy Now</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </motion.button>
-                    </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCartProduct({
+                              ...item,
+                              sellerId: catalogue.seller.id,
+                            });
+                          }}
+                          className="px-3 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 hover:border-emerald-500/40 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                          title="Configure Preferences & Add to Cart"
+                        >
+                          <ShoppingBag className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="hidden xs:inline sm:inline">Add to Cart</span>
+                        </button>
+
+                        <motion.button
+                          whileHover={{ scale: 1.04 }}
+                          whileTap={{ scale: 0.96 }}
+                          onClick={() => {
+                            setActiveProduct(item);
+                            setSelectedVariant(item.variants?.[0] || null);
+                            setCouponApplied(null);
+                            setCheckoutSuccess(null);
+                          }}
+                          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-extrabold text-xs flex items-center gap-1.5 shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all cursor-pointer"
+                        >
+                          <span>Buy Now</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </motion.button>
+                      </div>
                   </div>
                 </div>
               </motion.div>
@@ -1196,6 +1213,14 @@ export function CatalogueClientView({
           );
         })()}
       </AnimatePresence>
+
+      {/* Add To Cart Preference & Variant Modal */}
+      <AddToCartModal
+        product={cartProduct}
+        sellerHandle={catalogue.seller.handle}
+        isOpen={!!cartProduct}
+        onClose={() => setCartProduct(null)}
+      />
 
       {/* Powered by Littlelyst Footer */}
       <footer className="mt-12 mb-8 text-center">
