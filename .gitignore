@@ -1,2 +1,7 @@
 PRD-Personal-Catalogue-Commerce.md
 .agents/
+node_modules/
+.next/
+dist/
+.env
+.env.local

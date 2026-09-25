@@ -23,6 +23,7 @@ export const txStatus = pgEnum("tx_status", [
   "REVERSED",
 ]);
 export const ledgerType = pgEnum("ledger_type", ["CREDIT", "DEBIT"]);
+export const userRole = pgEnum("user_role", ["seller", "admin", "super-admin", "buyer"]);
 
 export const productType = pgEnum("product_type", ["PHYSICAL", "DIGITAL"]);
 export const productVisibility = pgEnum("product_visibility", [
@@ -58,7 +59,7 @@ export const users = pgTable("users", {
   bio: varchar("bio", { length: 500 }),
   avatarUrl: varchar("avatar_url", { length: 1000 }),
   passwordHash: varchar("password_hash", { length: 255 }).notNull(),
-  role: varchar("role", { length: 50 }).notNull().default("seller"),
+  role: userRole("role").notNull().default("seller"),
   systemUser: boolean("system_user").notNull().default(false),
   paystackSubaccountCode: varchar("paystack_subaccount_code", { length: 100 }),
   paystackBankName: varchar("paystack_bank_name", { length: 100 }),
@@ -157,6 +158,7 @@ export const orders = pgTable(
       .notNull()
       .references(() => products.id),
     variantId: uuid("variant_id").references(() => productVariants.id),
+    buyerId: uuid("buyer_id").references(() => users.id),
     buyerName: varchar("buyer_name", { length: 100 }).notNull(),
     buyerEmail: varchar("buyer_email", { length: 255 }).notNull(),
     buyerPhone: varchar("buyer_phone", { length: 50 }),
