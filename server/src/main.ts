@@ -22,7 +22,7 @@ async function bootstrap() {
       cookie: {
         httpOnly: true, // Prevents XSS script access to session cookie
         secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         maxAge: sessionMaxAgeDays * 24 * 60 * 60 * 1000,
       },
     }),
