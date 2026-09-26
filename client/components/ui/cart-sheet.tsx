@@ -18,6 +18,7 @@ import {
   Check,
   UserCheck,
 } from "lucide-react";
+import { toast } from '@/components/ui/toast';
 
 export function CartSheet() {
   const {
@@ -42,6 +43,9 @@ export function CartSheet() {
   const [checkingOut, setCheckingOut] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
   const [checkoutSuccess, setCheckoutSuccess] = useState<any | null>(null);
+  const [couponCode, setCouponCode] = useState('');
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [discountedAmountMinor, setDiscountedAmountMinor] = useState<number | null>(null);
 
   // Auto-populate customer information if logged in as buyer or seller
   useEffect(() => {
@@ -97,7 +101,7 @@ export function CartSheet() {
 
         await triggerPaystackCheckout({
           email: orderData.buyerEmail,
-          amountMinor: totalAmountMinor,
+          amountMinor: discountedAmountMinor ?? totalAmountMinor,
           reference: orderData.paystackReference,
           subaccount: orderData.subaccount,
           platformFeeMinor: orderData.platformFeeMinor
@@ -434,7 +438,55 @@ export function CartSheet() {
                     />
                   </div>
 
-                  {/* Payment Method Selector */}
+                  {/* Coupon Code Input */}
+                  <div className="flex space-x-2 items-center">
+                    <input
+                      type="text"
+                      placeholder="Coupon Code"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value)}
+                      className="flex-1 bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-emerald-400 focus:outline-none"
+                      disabled={applyingCoupon}
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!couponCode) return;
+                        setApplyingCoupon(true);
+                        try {
+                          const res = await apiClient<{ finalPriceMinor: number; discountMinor: number }>("/api/promotions/validate-coupon", {
+                            method: "POST",
+                            body: JSON.stringify({ code: couponCode, amountMinor: totalAmountMinor }),
+                          });
+                          if (res.data) {
+                            setDiscountedAmountMinor(res.data.finalPriceMinor);
+                            toast({
+                              title: "Coupon applied",
+                              description: `Discounted ${formatNaira(res.data.discountMinor)}`,
+                              variant: "default",
+                            });
+                          } else {
+                            toast({
+                              title: "Invalid coupon",
+                              variant: "destructive",
+                            });
+                          }
+                        } catch (e: any) {
+                          toast({
+                            title: "Coupon error",
+                            description: e.message || "Error applying coupon",
+                            variant: "destructive",
+                          });
+                        } finally {
+                          setApplyingCoupon(false);
+                        }
+                      }}
+                      disabled={applyingCoupon}
+                      className="px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-400 text-emerald-400 hover:bg-emerald-500/20"
+                    >
+                      Apply
+                    </button>
+                  </div>
                   <div className="space-y-1.5 pt-1">
                     <label className="text-[11px] font-semibold text-white/80 uppercase tracking-wider flex items-center justify-between">
                       <span>Payment Method</span>
@@ -511,7 +563,7 @@ export function CartSheet() {
                     >
                       {checkingOut
                         ? "Connecting to Paystack..."
-                        : `Pay ${formatNaira(totalAmountMinor)} Now`}
+                        : `Pay ${formatNaira(discountedAmountMinor ?? totalAmountMinor)} Now`}
                     </button>
                   </div>
                 </form>
