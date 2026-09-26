@@ -8,6 +8,10 @@ import { AllExceptionsFilter } from "./common/filters/http-exception.filter.js";
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Trust proxy is required when hosting behind a reverse proxy (like Render/Vercel)
+  // so that secure cookies are properly set over HTTPS.
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
   app.use(cookieParser());
 
   const sessionMaxAgeDays = parseInt(process.env.SESSION_MAX_AGE_DAYS || "7", 10);
