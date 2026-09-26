@@ -3,6 +3,7 @@ import Script from "next/script";
 import "./globals.css";
 import { AppInitializer } from "@/components/ui/app-initializer";
 import { CartSheet } from "@/components/ui/cart-sheet";
+import { Toaster } from "react-hot-toast";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -111,9 +112,11 @@ export default function RootLayout({
 
         {/* No Context Providers — all state is Zustand. AppInitializer boots auth + theme. */}
         <AppInitializer />
+        <Toaster position="top-center" toastOptions={{ style: { background: '#111', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' } }} />
         {children}
         <CartSheet />
       </body>
     </html>
   );
 }
+

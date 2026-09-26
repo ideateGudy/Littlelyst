@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Mail, AlertCircle, Key, Lock, CheckCircle2 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { Logo } from "@/components/ui/logo";
+import toast from "react-hot-toast";
 
 type Step = "EMAIL" | "OTP" | "SUCCESS";
 
@@ -16,14 +17,15 @@ export default function ForgotPasswordPage() {
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!email.trim()) { toast.error("Please enter your email"); return; }
+    if (!email.includes("@")) { toast.error("Please enter a valid email address"); return; }
 
     setLoading(true);
-    setError(null);
+    
     try {
       await apiClient("/api/auth/forgot-password", {
         method: "POST",
@@ -31,7 +33,7 @@ export default function ForgotPasswordPage() {
       });
       setStep("OTP");
     } catch (err: any) {
-      setError(err.message || "Failed to send reset code. Please try again.");
+      toast.error(err.message || "Failed to send reset code. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -41,12 +43,12 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     if (!otp.trim() || !newPassword.trim()) return;
     if (newPassword.length < 6) {
-      setError("Password must be at least 6 characters.");
+      toast.error("Password must be at least 6 characters.");
       return;
     }
 
     setLoading(true);
-    setError(null);
+    
     try {
       await apiClient("/api/auth/reset-password", {
         method: "POST",
@@ -54,7 +56,7 @@ export default function ForgotPasswordPage() {
       });
       setStep("SUCCESS");
     } catch (err: any) {
-      setError(err.message || "Failed to reset password. Check your code and try again.");
+      toast.error(err.message || "Failed to reset password. Check your code and try again.");
     } finally {
       setLoading(false);
     }
@@ -107,12 +109,7 @@ export default function ForgotPasswordPage() {
           </div>
         )}
 
-        {error && step !== "SUCCESS" && (
-          <div className="mb-6 liquid-glass border border-red-500/30 text-red-300 rounded-xl p-3 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
+        
 
         {step === "EMAIL" && (
           <form onSubmit={handleSendOtp} className="space-y-4">
@@ -214,3 +211,4 @@ export default function ForgotPasswordPage() {
     </div>
   );
 }
+

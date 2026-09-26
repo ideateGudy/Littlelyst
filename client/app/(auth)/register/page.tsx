@@ -1,6 +1,7 @@
 "use client";
 
 import { Logo } from "@/components/ui/logo";
+import toast from "react-hot-toast";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 import React, { useState, useEffect } from "react";
@@ -92,14 +93,14 @@ export default function RegisterPage() {
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (otpChannel === "phone" && !phone.trim()) {
-      setError("Please enter a valid phone number");
+      toast.error("Please enter a valid phone number");
       return;
     }
     if (otpChannel === "email" && !email.trim()) {
-      setError("Please enter a valid email address");
+      toast.error("Please enter a valid email address");
       return;
     }
-    setError("");
+    
     setLoading(true);
 
     try {
@@ -117,10 +118,10 @@ export default function RegisterPage() {
         setOtpCode(res.simulatedCode); // Auto-fill for developer convenience
       }
       const destination = otpChannel === "email" ? email : phone;
-      setSuccessMsg(`Verification code sent to ${destination}`);
+      toast.success(`Verification code sent to ${destination}`);
       setStep(2);
     } catch (err: any) {
-      setError(err.message || `Failed to send verification code to ${otpChannel}`);
+      toast.error(err.message || `Failed to send verification code to ${otpChannel}`);
     } finally {
       setLoading(false);
     }
@@ -130,10 +131,10 @@ export default function RegisterPage() {
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otpCode.trim()) {
-      setError("Please enter the 6-digit confirmation code");
+      toast.error("Please enter the 6-digit confirmation code");
       return;
     }
-    setError("");
+    
     setLoading(true);
 
     try {
@@ -151,13 +152,13 @@ export default function RegisterPage() {
       );
 
       if (res.valid) {
-        setSuccessMsg("Verification successful!");
+        toast.success("Verification successful!");
         setStep(3);
       } else {
-        setError(res.message || "Invalid or expired code");
+        toast.error(res.message || "Invalid or expired code");
       }
     } catch (err: any) {
-      setError(err.message || "Code verification failed");
+      toast.error(err.message || "Code verification failed");
     } finally {
       setLoading(false);
     }
@@ -168,27 +169,27 @@ export default function RegisterPage() {
     e.preventDefault();
     if (selectedRole === "seller") {
       if (!brandName.trim()) {
-        setError("Please enter your brand or store name");
+        toast.error("Please enter your brand or store name");
         return;
       }
       if (!handle.trim()) {
-        setError("Please specify a catalogue link");
+        toast.error("Please specify a catalogue link");
         return;
       }
     } else {
       if (!buyerName.trim()) {
-        setError("Please enter your full name");
+        toast.error("Please enter your full name");
         return;
       }
     }
-    setError("");
+    
     setStep(4);
   };
 
   // Step 4: Account Password & Final Registration
   const handleFinalRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    
     setLoading(true);
 
     try {
@@ -224,7 +225,7 @@ export default function RegisterPage() {
         throw new Error(res.message || "Registration failed");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to complete account registration");
+      toast.error(err.message || "Failed to complete account registration");
     } finally {
       setLoading(false);
     }
@@ -262,7 +263,7 @@ export default function RegisterPage() {
               type="button"
               onClick={() => {
                 setSelectedRole("seller");
-                setError("");
+                
               }}
               className={`flex-1 py-2 rounded-lg flex items-center justify-center gap-1.5 font-bold transition-all cursor-pointer ${
                 selectedRole === "seller"
@@ -276,7 +277,7 @@ export default function RegisterPage() {
               type="button"
               onClick={() => {
                 setSelectedRole("buyer");
-                setError("");
+                
               }}
               className={`flex-1 py-2 rounded-lg flex items-center justify-center gap-1.5 font-bold transition-all cursor-pointer ${
                 selectedRole === "buyer"
@@ -321,12 +322,7 @@ export default function RegisterPage() {
         </div>
 
         {/* Alerts */}
-        {error && (
-          <div className="mb-5 liquid-glass border border-red-500/30 text-red-300 rounded-2xl p-3 text-xs flex items-center gap-2.5 animate-shake">
-            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-            <span className="flex-1">{error}</span>
-          </div>
-        )}
+        
 
         {/* Multi-step Transitions */}
         <AnimatePresence mode="wait">
@@ -346,7 +342,7 @@ export default function RegisterPage() {
                   type="button"
                   onClick={() => {
                     setOtpChannel("email");
-                    setError("");
+                    
                   }}
                   className={`flex-1 py-1.5 rounded-lg flex items-center justify-center gap-1.5 font-semibold transition-all cursor-pointer ${
                     otpChannel === "email"
@@ -360,7 +356,7 @@ export default function RegisterPage() {
                   type="button"
                   onClick={() => {
                     setOtpChannel("phone");
-                    setError("");
+                    
                   }}
                   className={`flex-1 py-1.5 rounded-lg flex items-center justify-center gap-1.5 font-semibold transition-all cursor-pointer ${
                     otpChannel === "phone"
@@ -726,7 +722,7 @@ export default function RegisterPage() {
                   <Lock className="w-3.5 h-3.5 text-white/40" />
                   Create Password
                 </label>
-                <input
+                                <input
                   type="password"
                   required
                   minLength={6}
@@ -735,6 +731,22 @@ export default function RegisterPage() {
                   placeholder="At least 6 characters"
                   className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-emerald-400 transition-colors"
                 />
+                {password.length > 0 && (
+                  <div className="flex flex-col gap-1 pt-1">
+                    <div className="flex gap-1 w-full">
+                      {[1, 2, 3, 4].map((level) => {
+                        const score = password.length < 6 ? 1 : password.length < 8 ? 2 : (!/[A-Z]/.test(password) || !/[0-9]/.test(password)) ? 3 : 4;
+                        const color = score === 1 ? 'bg-rose-500' : score === 2 ? 'bg-amber-500' : score === 3 ? 'bg-teal-400' : 'bg-emerald-500';
+                        return (
+                          <div key={level} className={h-1.5 flex-1 rounded-full } />
+                        );
+                      })}
+                    </div>
+                    <span className="text-[10px] text-white/50 text-right">
+                      {password.length < 6 ? 'Too short' : password.length < 8 ? 'Weak' : (!/[A-Z]/.test(password) || !/[0-9]/.test(password)) ? 'Good' : 'Strong'}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center gap-2 pt-1">
@@ -778,3 +790,5 @@ export default function RegisterPage() {
     </div>
   );
 }
+
+

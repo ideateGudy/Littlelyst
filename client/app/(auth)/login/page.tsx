@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
-import { Lock, Mail, ArrowRight, AlertCircle } from "lucide-react";
+import { Lock, Mail, ArrowRight } from "lucide-react";
+import toast from "react-hot-toast";
 
 import { Logo } from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -17,12 +18,21 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Client-side validation
+    if (!email.includes("@")) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
     setLoading(true);
-    setError("");
 
     try {
       const res = await apiClient("/api/auth/login", {
@@ -31,6 +41,7 @@ export default function LoginPage() {
       });
 
       if (res.user) {
+        toast.success("Welcome back!");
         login(res.user);
         if (res.user.role === "buyer") {
           window.location.href = "/buyer";
@@ -41,7 +52,7 @@ export default function LoginPage() {
         throw new Error(res.message || "Failed to log in");
       }
     } catch (err: any) {
-      setError(err.message || "Invalid email or password");
+      toast.error(err.message || "Invalid email or password");
     } finally {
       setLoading(false);
     }
@@ -65,13 +76,6 @@ export default function LoginPage() {
             Sign in to your merchant store or your shopper purchase portal.
           </p>
         </div>
-
-        {error && (
-          <div className="mb-6 liquid-glass border border-red-500/30 text-red-300 rounded-xl p-3 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
