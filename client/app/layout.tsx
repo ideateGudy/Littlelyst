@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import Script from "next/script";
+import PaystackScript from "@/components/PaystackScript";
 import "./globals.css";
 import { AppInitializer } from "@/components/ui/app-initializer";
 import { CartSheet } from "@/components/ui/cart-sheet";
@@ -107,8 +107,8 @@ export default function RootLayout({
         <script src="/theme-init.js" />
       </head>
       <body className="antialiased min-h-screen bg-[#050505] text-[#e5e4e2] overflow-x-hidden selection:bg-emerald-500 selection:text-black">
-        {/* Paystack inline script loads with its own allow attribute. The console warning about 'allow' vs 'allowPaymentRequest' is harmless and can be ignored. */}
-        <Script src="https://js.paystack.co/v2/inline.js" strategy="lazyOnload" allow="payment; clipboard-read; clipboard-write" />
+
+        <PaystackScript />
 
         {/* No Context Providers — all state is Zustand. AppInitializer boots auth + theme. */}
         <AppInitializer />
