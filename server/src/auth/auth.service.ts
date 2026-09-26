@@ -264,6 +264,56 @@ export class AuthService {
     };
   }
 
+  async forgotPassword(email: string) {
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      // Don't leak that the user doesn't exist to prevent enumeration,
+      // just simulate a successful request.
+      return { status: "success", message: "If an account exists, a reset code was sent." };
+    }
+    
+    // Generate 6 digit OTP
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes expiry
+    
+    this.otpStore.set(email.toLowerCase().trim(), { code, expiresAt });
+    
+    this.emailService
+      .sendOtpEmail(email, code) // We can reuse the OTP email template
+      .catch((err) => console.error("Error sending reset OTP email:", err));
+      
+    console.log(`[EMAIL PASSWORD RESET OTP] Verification code for ${email}: ${code}`);
+    
+    return { status: "success", message: "If an account exists, a reset code was sent." };
+  }
+
+  async resetPassword(email: string, code: string, newPassword: string) {
+    const identifier = email.trim().toLowerCase();
+    
+    const isValid = this.verifyOtp({ email: identifier }, code);
+    if (!isValid) {
+      throw new UnauthorizedException({
+        status: "failed",
+        message: "Invalid or expired reset code",
+      });
+    }
+
+    const user = await this.usersService.findByEmail(identifier);
+    if (!user) {
+      throw new NotFoundException({
+        status: "failed",
+        message: "User not found",
+      });
+    }
+
+    await this.usersService.updatePassword(user.id, newPassword);
+
+    return {
+      status: "success",
+      message: "Password reset successfully. You can now log in.",
+    };
+  }
+
   // Backwards compatible method
   async sendPhoneOtp(phone: string) {
     return this.sendOtp({ phone });

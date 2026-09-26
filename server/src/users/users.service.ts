@@ -141,6 +141,16 @@ export class UsersService {
     return results[0];
   }
 
+  async updatePassword(userId: string, newPassword: string): Promise<User> {
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const results = await this.db
+      .update(users)
+      .set({ passwordHash })
+      .where(eq(users.id, userId))
+      .returning();
+    return results[0];
+  }
+
   async comparePassword(password: string, hash: string): Promise<boolean> {
     return bcrypt.compare(password, hash);
   }
