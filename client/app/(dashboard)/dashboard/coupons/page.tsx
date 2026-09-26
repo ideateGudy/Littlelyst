@@ -42,11 +42,11 @@ interface ProductItem {
 
 export default function CouponsDashboard() {
   const router = useRouter();
-  const { user, isInitializing } = useAuth();
+  const { user, loading } = useAuth();
   
   const [coupons, setCoupons] = useState<CouponItem[]>([]);
   const [products, setProducts] = useState<ProductItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isFetchingData, setIsFetchingData] = useState(true);
   
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -61,16 +61,16 @@ export default function CouponsDashboard() {
   });
 
   useEffect(() => {
-    if (!isInitializing && !user) {
+    if (!loading && !user) {
       router.push("/login");
     }
-  }, [user, isInitializing, router]);
+  }, [user, loading, router]);
 
   useEffect(() => {
     const fetchCouponsAndProducts = async () => {
       if (!user) return;
       try {
-        setLoading(true);
+        setIsFetchingData(true);
         const [couponsRes, productsRes] = await Promise.all([
           apiClient<CouponItem[]>("/api/promotions/coupons"),
           apiClient<ProductItem[]>("/api/products"),
@@ -82,7 +82,7 @@ export default function CouponsDashboard() {
         console.error("Failed to load data", err);
         toast.error("Failed to load coupons");
       } finally {
-        setLoading(false);
+        setIsFetchingData(false);
       }
     };
     fetchCouponsAndProducts();
@@ -129,7 +129,7 @@ export default function CouponsDashboard() {
     }
   };
 
-  if (isInitializing || (loading && !coupons.length)) {
+  if (loading || (isFetchingData && !coupons.length)) {
     return <LoadingScreen />;
   }
 
