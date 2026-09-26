@@ -29,7 +29,7 @@ The frontend application for Littlelyst, providing dynamic storefronts for merch
 ## Environment Setup
 Ensure you have an `.env.local` file configured:
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:3001
+API_URL=http://localhost:3001
 NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=pk_test_...
 ```
 

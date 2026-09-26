@@ -45,7 +45,7 @@ FRONTEND_URL=http://localhost:3000
 
 **`client/.env.local`**:
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:3001
+API_URL=http://localhost:3001
 NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=pk_test_your_paystack_public_key
 ```
 
