@@ -108,7 +108,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased min-h-screen bg-[#050505] text-[#e5e4e2] overflow-x-hidden selection:bg-emerald-500 selection:text-black">
         {/* Paystack inline.js — loads async after page is interactive */}
-        <Script src="https://js.paystack.co/v2/inline.js" strategy="lazyOnload" />
+        <Script src="https://js.paystack.co/v2/inline.js" strategy="lazyOnload" allow="" />
 
         {/* No Context Providers — all state is Zustand. AppInitializer boots auth + theme. */}
         <AppInitializer />

@@ -101,6 +101,14 @@ export async function triggerPaystackCheckout(config: PaystackCheckoutConfig): P
           const paystackInstance = new window.PaystackPop();
           if (paystackInstance && typeof paystackInstance.checkout === "function") {
             const v2Options: Record<string, any> = {
+              allowPaymentRequest: true,
+              key: paystackKey,
+              email: config.email,
+              amount: Number(config.amountMinor),
+              ref,
+              currency: "NGN",
+              channels,
+              ...(config.subaccount && { subaccount: config.subaccount }),
               onSuccess: (transaction: any) => {
                 const paidRef = transaction?.reference || ref;
                 handleVerify(paidRef);
