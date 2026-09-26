@@ -738,7 +738,7 @@ export default function RegisterPage() {
                         const score = password.length < 6 ? 1 : password.length < 8 ? 2 : (!/[A-Z]/.test(password) || !/[0-9]/.test(password)) ? 3 : 4;
                         const color = score === 1 ? 'bg-rose-500' : score === 2 ? 'bg-amber-500' : score === 3 ? 'bg-teal-400' : 'bg-emerald-500';
                         return (
-                          <div key={level} className={h-1.5 flex-1 rounded-full } />
+                          <div key={level} className={`h-1.5 flex-1 rounded-full ${level <= score ? color : 'bg-white/10'}`} />
                         );
                       })}
                     </div>
@@ -790,5 +790,6 @@ export default function RegisterPage() {
     </div>
   );
 }
+
 
 
