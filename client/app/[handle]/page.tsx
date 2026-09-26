@@ -90,3 +90,4 @@ export default async function PublicCatalogueServerPage(props: {
 
   return <CatalogueClientView initialData={initialData} handle={handle} />;
 }
+

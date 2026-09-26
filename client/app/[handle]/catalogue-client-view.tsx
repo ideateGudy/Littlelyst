@@ -84,6 +84,8 @@ export function CatalogueClientView({
   const [storyOpen, setStoryOpen] = useState(false);
   const [storyProductIndex, setStoryProductIndex] = useState(0);
   const [storyImageIndex, setStoryImageIndex] = useState(0);
+  const [lightboxImages, setLightboxImages] = useState<string[] | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   const [storyPaused, setStoryPaused] = useState(false);
 
   const { user: currentUser } = useAuth();
@@ -112,8 +114,32 @@ export function CatalogueClientView({
     }
   }, [currentUser]);
 
+  // Auto-advance Flash Sales Stories
   useEffect(() => {
-    async function loadCatalogue() {
+    if (!storyOpen || !catalogue) return;
+    const promoProducts = (catalogue.products || []).filter((p) => !!p.activePromotion);
+    if (promoProducts.length === 0) return;
+    const currentStoryProduct = promoProducts[storyProductIndex] || promoProducts[0];
+    const storyImages = currentStoryProduct.images && currentStoryProduct.images.length > 0
+      ? currentStoryProduct.images
+      : ["https://images.unsplash.com/photo-1556742049-0a67e55722c0?auto=format&fit=crop&w=800&q=80"];
+
+    const timer = setTimeout(() => {
+      if (storyImageIndex < storyImages.length - 1) {
+        setStoryImageIndex((prev) => prev + 1);
+      } else if (storyProductIndex < promoProducts.length - 1) {
+        setStoryProductIndex((prev) => prev + 1);
+        setStoryImageIndex(0);
+      } else {
+        setStoryOpen(false);
+      }
+    }, 4500);
+
+    return () => clearTimeout(timer);
+  }, [storyOpen, storyProductIndex, storyImageIndex, catalogue]);
+
+  useEffect(() => {
+      async function loadCatalogue() {
       if (initialData) return;
       try {
         setLoading(true);
@@ -560,13 +586,9 @@ export function CatalogueClientView({
                         setStoryProductIndex(promoIdx >= 0 ? promoIdx : 0);
                         setStoryImageIndex(0);
                         setStoryOpen(true);
-                      } else {
-                        // Open full screen image view
-                        const el = document.getElementById("catalog-lightbox");
-                        if(el && item.images && item.images[0]) {
-                          el.style.display = "flex";
-                          (document.getElementById("catalog-lightbox-img") as HTMLImageElement).src = item.images[0];
-                        }
+                      } else if (item.images && item.images.length > 0) {
+                        setLightboxImages(item.images);
+                        setLightboxIndex(0);
                       }
                     }}
                   className="w-full sm:w-36 h-48 sm:h-36 rounded-xl bg-black/50 overflow-hidden relative shrink-0 cursor-pointer group"
@@ -1008,6 +1030,8 @@ export function CatalogueClientView({
             : ["https://images.unsplash.com/photo-1556742049-0a67e55722c0?auto=format&fit=crop&w=800&q=80"];
           const currentImg = storyImages[storyImageIndex] || storyImages[0];
 
+          
+
           const handleNext = () => {
             if (storyImageIndex < storyImages.length - 1) {
               setStoryImageIndex((prev) => prev + 1);
@@ -1135,21 +1159,59 @@ export function CatalogueClientView({
         })()}
       </AnimatePresence>
 
-      {/* Catalog Lightbox Element */}
-        <div 
-          id="catalog-lightbox" 
-          style={{display: "none"}} 
-          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out"
-          onClick={(e) => {
-             (e.currentTarget as HTMLElement).style.display = "none";
-          }}
-        >
-          <img id="catalog-lightbox-img" src="" alt="Full screen view" className="max-w-full max-h-full object-contain rounded-xl" />
-          <button className="absolute top-4 right-4 text-white/70 hover:text-white p-2 rounded-full bg-white/10 backdrop-blur-md">
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-        
+              <AnimatePresence>
+          {lightboxImages && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 select-none"
+              onClick={() => setLightboxImages(null)}
+            >
+              <button className="absolute top-4 right-4 z-50 text-white/70 hover:text-white p-2 rounded-full bg-white/10 backdrop-blur-md cursor-pointer transition-all hover:scale-110">
+                <X className="w-6 h-6" />
+              </button>
+
+              <div 
+                className="relative w-full max-w-4xl max-h-full flex items-center justify-center"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <motion.img 
+                  key={lightboxIndex}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2 }}
+                  src={lightboxImages[lightboxIndex]} 
+                  alt="Full screen view" 
+                  className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl" 
+                />
+
+                {lightboxImages.length > 1 && (
+                  <>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setLightboxIndex(prev => Math.max(0, prev - 1)); }}
+                      className={bsolute left-2 md:-left-12 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md transition-all cursor-pointer }
+                      disabled={lightboxIndex === 0}
+                    >
+                      <ArrowLeft className="w-6 h-6" />
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setLightboxIndex(prev => Math.min(lightboxImages.length - 1, prev + 1)); }}
+                      className={bsolute right-2 md:-right-12 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md transition-all cursor-pointer }
+                      disabled={lightboxIndex === lightboxImages.length - 1}
+                    >
+                      <ArrowRight className="w-6 h-6" />
+                    </button>
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/70 text-white/70 text-xs font-mono backdrop-blur-md">
+                      {lightboxIndex + 1} / {lightboxImages.length}
+                    </div>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Add To Cart Preference & Variant Modal */}
       <AddToCartModal
         product={cartProduct}
@@ -1173,6 +1235,14 @@ export function CatalogueClientView({
     </div>
   );
 }
+
+
+
+
+
+
+
+
 
 
 
