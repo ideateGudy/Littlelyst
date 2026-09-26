@@ -1190,14 +1190,14 @@ export function CatalogueClientView({
                   <>
                     <button 
                       onClick={(e) => { e.stopPropagation(); setLightboxIndex(prev => Math.max(0, prev - 1)); }}
-                      className={bsolute left-2 md:-left-12 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md transition-all cursor-pointer }
+                      className={"absolute left-2 md:-left-12 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md transition-all cursor-pointer " + (lightboxIndex === 0 ? "opacity-30 cursor-not-allowed" : "hover:scale-110")}
                       disabled={lightboxIndex === 0}
                     >
                       <ArrowLeft className="w-6 h-6" />
                     </button>
                     <button 
                       onClick={(e) => { e.stopPropagation(); setLightboxIndex(prev => Math.min(lightboxImages.length - 1, prev + 1)); }}
-                      className={bsolute right-2 md:-right-12 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md transition-all cursor-pointer }
+                      className={"absolute right-2 md:-right-12 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md transition-all cursor-pointer " + (lightboxIndex === lightboxImages.length - 1 ? "opacity-30 cursor-not-allowed" : "hover:scale-110")}
                       disabled={lightboxIndex === lightboxImages.length - 1}
                     >
                       <ArrowRight className="w-6 h-6" />
