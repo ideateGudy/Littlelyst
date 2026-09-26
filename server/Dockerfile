@@ -31,6 +31,6 @@ RUN pnpm install --prod --frozen-lockfile
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src/db/migrations ./dist/db/migrations
 
-EXPOSE 3000
+EXPOSE 5000
 
 CMD ["node", "dist/main"]
