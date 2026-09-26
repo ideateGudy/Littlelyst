@@ -216,9 +216,9 @@ export default function RegisterPage() {
       if (res.user) {
         login(res.user);
         if (isBuyer) {
-          router.push("/buyer");
+          window.location.href = "/buyer";
         } else {
-          router.push("/dashboard");
+          window.location.href = "/dashboard";
         }
       } else {
         throw new Error(res.message || "Registration failed");

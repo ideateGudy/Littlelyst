@@ -33,9 +33,9 @@ export default function LoginPage() {
       if (res.user) {
         login(res.user);
         if (res.user.role === "buyer") {
-          router.push("/buyer");
+          window.location.href = "/buyer";
         } else {
-          router.push("/dashboard");
+          window.location.href = "/dashboard";
         }
       } else {
         throw new Error(res.message || "Failed to log in");
