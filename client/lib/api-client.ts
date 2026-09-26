@@ -6,7 +6,7 @@ export interface ApiResponse<T = any> {
   [key: string]: any;
 }
 
-const API_BASE_URL =
+const API_URL =
   process.env.API_URL || "http://localhost:5000";
 
 /**
@@ -21,7 +21,7 @@ async function attemptTokenRefresh(): Promise<boolean> {
 
   refreshPromise = (async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+      const res = await fetch(`${API_URL}/api/auth/refresh`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -43,7 +43,7 @@ export async function apiClient<T = any>(
 ): Promise<ApiResponse<T>> {
   const url = endpoint.startsWith("http")
     ? endpoint
-    : `${API_BASE_URL}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
+    : `${API_URL}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
 
   const headers = new Headers(options.headers || {});
   if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
