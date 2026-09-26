@@ -80,7 +80,7 @@ export function CatalogueClientView({
   // Category and Type Filters ('ALL' | 'PHYSICAL' | 'DIGITAL' | 'PROMO' or custom category)
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
 
-  // Instagram Story View Modal State
+  // Flash Sales View Modal State
   const [storyOpen, setStoryOpen] = useState(false);
   const [storyProductIndex, setStoryProductIndex] = useState(0);
   const [storyImageIndex, setStoryImageIndex] = useState(0);
@@ -305,7 +305,7 @@ export function CatalogueClientView({
               }
             }}
             className="group relative p-1 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-emerald-400 cursor-pointer shadow-[0_0_25px_rgba(244,63,94,0.3)] block"
-            title="Click to watch product stories"
+            title="Click to watch product flash sales"
           >
             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full p-0.5 bg-black overflow-hidden">
               {catalogue.seller.avatarUrl ? (
@@ -324,7 +324,7 @@ export function CatalogueClientView({
             {/* Tap to view story pill */}
             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap bg-rose-500 hover:bg-rose-400 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full shadow-lg border border-white/30 flex items-center gap-1 uppercase tracking-wider">
               <Flame className="w-2.5 h-2.5 animate-bounce" />
-              <span>Stories</span>
+              <span>Flash Sales</span>
             </div>
           </motion.button>
         </div>
@@ -370,7 +370,7 @@ export function CatalogueClientView({
             <span>{copiedLink ? "Link Copied!" : "Share Catalogue"}</span>
           </motion.button>
 
-          {/* Watch Store Stories Button (Only if there are running promotional products) */}
+          {/* Watch Flash Sales Button (Only if there are running promotional products) */}
           {(() => {
             const promoProducts = (catalogue.products || []).filter((p) => !!p.activePromotion);
             if (promoProducts.length === 0) return null;
@@ -387,7 +387,7 @@ export function CatalogueClientView({
                 className="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-[0_0_20px_rgba(244,63,94,0.35)] transition-all cursor-pointer"
               >
                 <Eye className="w-3.5 h-3.5" />
-                <span>Watch Promo Stories ({promoProducts.length})</span>
+                <span>Watch Flash Sales ({promoProducts.length})</span>
               </motion.button>
             );
           })()}
@@ -554,16 +554,21 @@ export function CatalogueClientView({
                 {/* Product Image */}
                 <div
                   onClick={() => {
-                    if (item.activePromotion) {
-                      const promoProducts = (catalogue.products || []).filter((p) => !!p.activePromotion);
-                      const promoIdx = promoProducts.findIndex((p) => p.id === item.id);
-                      setStoryProductIndex(promoIdx >= 0 ? promoIdx : 0);
-                      setStoryImageIndex(0);
-                      setStoryOpen(true);
-                    } else {
-                      window.location.href = `/${catalogue.seller.handle}/products/${item.slug}`;
-                    }
-                  }}
+                      if (item.activePromotion) {
+                        const promoProducts = (catalogue.products || []).filter((p) => !!p.activePromotion);
+                        const promoIdx = promoProducts.findIndex((p) => p.id === item.id);
+                        setStoryProductIndex(promoIdx >= 0 ? promoIdx : 0);
+                        setStoryImageIndex(0);
+                        setStoryOpen(true);
+                      } else {
+                        // Open full screen image view
+                        const el = document.getElementById("catalog-lightbox");
+                        if(el && item.images && item.images[0]) {
+                          el.style.display = "flex";
+                          (document.getElementById("catalog-lightbox-img") as HTMLImageElement).src = item.images[0];
+                        }
+                      }
+                    }}
                   className="w-full sm:w-36 h-48 sm:h-36 rounded-xl bg-black/50 overflow-hidden relative shrink-0 cursor-pointer group"
                 >
                   {item.images && item.images[0] ? (
@@ -583,7 +588,7 @@ export function CatalogueClientView({
                   {item.activePromotion && (
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-bold">
                       <Eye className="w-4 h-4 text-rose-400" />
-                      <span>Promo Story</span>
+                      <span>Flash Sale</span>
                     </div>
                   )}
 
@@ -991,7 +996,7 @@ export function CatalogueClientView({
         )}
       </AnimatePresence>
 
-      {/* Instagram Story View Modal (Promotions Only) */}
+      {/* Flash Sales View Modal (Promotions Only) */}
       <AnimatePresence>
         {storyOpen && (() => {
           const promoProducts = (catalogue.products || []).filter((p) => !!p.activePromotion);
@@ -1124,97 +1129,28 @@ export function CatalogueClientView({
                   </div>
                 </div>
 
-                {/* Bottom Section: Product Info Card, Countdown and Instant Buy Trigger */}
-                <div className="relative z-20 p-4 space-y-3">
-                  <div className="liquid-glass-card rounded-2xl p-4 border border-white/20 backdrop-blur-xl bg-black/75 text-white space-y-2.5">
-                    {/* Countdown or Promo Badge if active */}
-                    {currentStoryProduct.activePromotion && (
-                      <div className="flex items-center gap-2">
-                        <CountdownTimer targetDate={currentStoryProduct.activePromotion.endAt} />
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 uppercase">
-                          Flash Promo
-                        </span>
-                      </div>
-                    )}
-
-                    <div>
-                      <div className="flex items-center gap-2 text-[10px] font-mono text-emerald-400 uppercase font-semibold">
-                        <span>{currentStoryProduct.productType}</span>
-                        {currentStoryProduct.stockQuantity > 0 && currentStoryProduct.productType === "PHYSICAL" && (
-                          <span className="text-white/50">• {currentStoryProduct.stockQuantity} in stock</span>
-                        )}
-                      </div>
-                      <h2 className="text-base font-black text-white leading-snug line-clamp-2 mt-0.5">
-                        {currentStoryProduct.title}
-                      </h2>
-                    </div>
-
-                    <div className="flex items-baseline justify-between pt-1">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-xl font-black text-emerald-400">
-                          {formatNaira(activePriceMinor)}
-                        </span>
-                        {promoPriceMinor && promoPriceMinor < originalPriceMinor && (
-                          <span className="text-xs text-white/50 line-through font-mono">
-                            {formatNaira(originalPriceMinor)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Instant Buy Button directly inside Story */}
-                    <div className="flex items-center gap-2 pt-1">
-                      <button
-                        onClick={() => {
-                          setStoryOpen(false);
-                          setActiveProduct(currentStoryProduct);
-                          setSelectedVariant(currentStoryProduct.variants?.[0] || null);
-                          setCouponApplied(null);
-                          setCheckoutSuccess(null);
-                        }}
-                        className="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 text-black font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-[0_0_20px_rgba(16,185,129,0.5)] cursor-pointer hover:opacity-95 transition-all"
-                      >
-                        <span>Buy Now — {formatNaira(activePriceMinor)}</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-
-                      <a
-                        href={`/${catalogue.seller.handle}/products/${currentStoryProduct.slug}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-3 rounded-xl bg-white/10 hover:bg-white/20 text-white cursor-pointer border border-white/20"
-                        title="View Full Product Page"
-                      >
-                        <Sparkles className="w-4 h-4 text-emerald-400" />
-                      </a>
-                    </div>
-                  </div>
-
-                  {/* Left / Right Story Navigation Helpers */}
-                  <div className="flex items-center justify-between text-[11px] text-white/50 px-2 font-mono">
-                    <button
-                      onClick={handlePrev}
-                      disabled={storyProductIndex === 0 && storyImageIndex === 0}
-                      className="hover:text-white disabled:opacity-30 cursor-pointer flex items-center gap-1"
-                    >
-                      <ChevronLeft className="w-3.5 h-3.5" /> Prev
-                    </button>
-                    <span>Tap sides to browse photos</span>
-                    <button
-                      onClick={handleNext}
-                      className="hover:text-white cursor-pointer flex items-center gap-1"
-                    >
-                      Next <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
+                {/* Bottom Section: Minimal Product Info & CTA */}<div className="relative z-20 p-4 pb-6 space-y-3"><div className="space-y-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"><div className="flex items-center gap-2">{currentStoryProduct.activePromotion && (<CountdownTimer targetDate={currentStoryProduct.activePromotion.endAt} onExpire={() => window.location.reload()} className="bg-black/40 backdrop-blur-md" />)}</div><h2 className="text-lg font-black text-white leading-snug line-clamp-2">{currentStoryProduct.title}</h2><div className="flex items-baseline gap-2 pb-2"><span className="text-2xl font-black text-emerald-400 drop-shadow-md">{formatNaira(activePriceMinor)}</span>{promoPriceMinor && promoPriceMinor < originalPriceMinor && (<span className="text-sm text-white/70 line-through font-mono drop-shadow-md">{formatNaira(originalPriceMinor)}</span>)}</div></div><button onClick={() => { setStoryOpen(false); setActiveProduct(currentStoryProduct); setSelectedVariant(currentStoryProduct.variants?.[0] || null); setCouponApplied(null); setCheckoutSuccess(null); }} className="w-full py-3.5 rounded-2xl bg-white text-black font-extrabold text-sm flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(255,255,255,0.3)] cursor-pointer hover:scale-[1.02] transition-all"><span>Swipe up to Buy Now</span><ArrowRight className="w-4 h-4" /></button></div></motion.div>
             </div>
           );
         })()}
       </AnimatePresence>
 
-      {/* Add To Cart Preference & Variant Modal */}
+      {/* Catalog Lightbox Element */}
+        <div 
+          id="catalog-lightbox" 
+          style={{display: "none"}} 
+          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out"
+          onClick={(e) => {
+             (e.currentTarget as HTMLElement).style.display = "none";
+          }}
+        >
+          <img id="catalog-lightbox-img" src="" alt="Full screen view" className="max-w-full max-h-full object-contain rounded-xl" />
+          <button className="absolute top-4 right-4 text-white/70 hover:text-white p-2 rounded-full bg-white/10 backdrop-blur-md">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        
+        {/* Add To Cart Preference & Variant Modal */}
       <AddToCartModal
         product={cartProduct}
         sellerHandle={catalogue.seller.handle}
@@ -1237,3 +1173,8 @@ export function CatalogueClientView({
     </div>
   );
 }
+
+
+
+
+

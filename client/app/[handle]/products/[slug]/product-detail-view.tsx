@@ -8,6 +8,7 @@ import { triggerPaystackCheckout } from "@/lib/paystack";
 import { CountdownTimer } from "@/components/ui/countdown-timer";
 import { AddToCartModal } from "@/components/ui/add-to-cart-modal";
 import {
+  X,
   ArrowLeft,
   ShoppingBag,
   ArrowRight,
@@ -182,11 +183,14 @@ export function ProductDetailView({ data }: { data: PublicProductData }) {
   const discountPriceMinor = product.discountPriceMinor ? Number(product.discountPriceMinor) : null;
   const promoPriceMinor = product.activePromotion ? Number(product.activePromotion.discountedPriceMinor) : null;
 
-  const currentPrice = promoPriceMinor
+  const currentBasePriceMinor = promoPriceMinor
     ? promoPriceMinor
     : discountPriceMinor
     ? discountPriceMinor
     : originalPriceMinor;
+
+  const variantDeltaMinor = selectedVariant ? Number(selectedVariant.priceDeltaMinor || 0) : 0;
+  const currentPrice = currentBasePriceMinor + variantDeltaMinor;
 
   return (
     <div className="min-h-screen bg-[#050505] text-[#e5e4e2] px-4 py-6 sm:py-10 max-w-xl mx-auto space-y-6">
@@ -215,19 +219,28 @@ export function ProductDetailView({ data }: { data: PublicProductData }) {
       <div className="liquid-glass-card rounded-3xl p-5 sm:p-6 border border-white/15 space-y-5 shadow-2xl relative">
         {/* Product Image Gallery / Main Image */}
         <div className="space-y-3">
-          <div className="aspect-[4/3] w-full rounded-2xl bg-black/60 overflow-hidden relative group">
+          <div 
+            className="aspect-[4/3] w-full rounded-2xl bg-black/60 overflow-hidden relative group cursor-pointer"
+            onClick={() => {
+              // Open full screen image view by rendering a portal or simple fixed div
+              const el = document.getElementById('lightbox');
+              if(el) {
+                el.style.display = 'flex';
+                (document.getElementById('lightbox-img') as HTMLImageElement).src = product.images?.[selectedImageIndex] || product.images?.[0] || '';
+              }
+            }}
+          >
             {product.images && product.images.length > 0 ? (
               <img
                 src={product.images[selectedImageIndex] || product.images[0]}
                 alt={`${product.title} - photo ${selectedImageIndex + 1}`}
-                className="w-full h-full object-cover transition-all duration-300"
+                className="w-full h-full object-cover transition-all duration-300 group-hover:scale-105"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-white/20">
                 <ShoppingBag className="w-12 h-12" />
               </div>
             )}
-
 
             <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-[10px] font-mono text-emerald-400 font-bold uppercase">
               {product.productType}
@@ -239,6 +252,21 @@ export function ProductDetailView({ data }: { data: PublicProductData }) {
                 {selectedImageIndex + 1} / {product.images.length}
               </div>
             )}
+          </div>
+          
+          {/* Lightbox Element */}
+          <div 
+            id="lightbox" 
+            style={{display: 'none'}} 
+            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out"
+            onClick={(e) => {
+               (e.currentTarget as HTMLElement).style.display = 'none';
+            }}
+          >
+            <img id="lightbox-img" src="" alt="Full screen view" className="max-w-full max-h-full object-contain rounded-xl" />
+            <button className="absolute top-4 right-4 text-white/70 hover:text-white p-2 rounded-full bg-white/10 backdrop-blur-md">
+              <X className="w-6 h-6" />
+            </button>
           </div>
 
           {/* Multiple Image Thumbnails Slider */}
@@ -286,7 +314,10 @@ export function ProductDetailView({ data }: { data: PublicProductData }) {
           {/* Active Promotion Countdown Timer */}
           {product.activePromotion && (
             <div className="flex items-center gap-2">
-              <CountdownTimer targetDate={product.activePromotion.endAt} />
+              <CountdownTimer 
+                targetDate={product.activePromotion.endAt} 
+                onExpire={() => window.location.reload()}
+              />
               {product.activePromotion.maxItems && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/20 text-rose-400">
                   Only {Math.max(0, product.activePromotion.maxItems - (product.activePromotion.itemsSold || 0))} left!
@@ -301,23 +332,25 @@ export function ProductDetailView({ data }: { data: PublicProductData }) {
               // Promo Active: Promo Price (main) > Discount (if available) / Original (slashed)
               <>
                 <span className="text-2xl sm:text-3xl font-black text-rose-400">
-                  {formatNaira(promoPriceMinor!)}
+                  {formatNaira(promoPriceMinor! + variantDeltaMinor)}
                 </span>
                 <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 uppercase tracking-wider">
                   Promo Flash Sale
                 </span>
                 <span className="text-sm text-white/40 line-through font-mono">
-                  {discountPriceMinor ? formatNaira(discountPriceMinor) : formatNaira(originalPriceMinor)}
+                  {discountPriceMinor 
+                    ? formatNaira(discountPriceMinor + variantDeltaMinor) 
+                    : formatNaira(originalPriceMinor + variantDeltaMinor)}
                 </span>
               </>
             ) : discountPriceMinor && discountPriceMinor < originalPriceMinor ? (
               // Discount Active: Discount Price (main) > Original (slashed)
               <>
                 <span className="text-2xl sm:text-3xl font-black text-emerald-400">
-                  {formatNaira(discountPriceMinor)}
+                  {formatNaira(discountPriceMinor + variantDeltaMinor)}
                 </span>
                 <span className="text-sm text-white/40 line-through font-mono">
-                  {formatNaira(originalPriceMinor)}
+                  {formatNaira(originalPriceMinor + variantDeltaMinor)}
                 </span>
                 <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                   Save {formatNaira(originalPriceMinor - discountPriceMinor)}
@@ -326,7 +359,7 @@ export function ProductDetailView({ data }: { data: PublicProductData }) {
             ) : (
               // Normal Original Price
               <span className="text-2xl sm:text-3xl font-black text-emerald-400">
-                {formatNaira(originalPriceMinor)}
+                {formatNaira(originalPriceMinor + variantDeltaMinor)}
               </span>
             )}
           </div>
@@ -634,3 +667,5 @@ export function ProductDetailView({ data }: { data: PublicProductData }) {
     </div>
   );
 }
+
+
