@@ -17,7 +17,7 @@ import {
   Share2,
   Check,
   Tag,
-  ArrowRight,
+  ArrowRight, ArrowLeft,
   ShieldCheck,
   Zap,
   Clock,
@@ -1235,6 +1235,8 @@ export function CatalogueClientView({
     </div>
   );
 }
+
+
 
 
 
