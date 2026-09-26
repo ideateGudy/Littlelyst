@@ -7,7 +7,7 @@ export interface ApiResponse<T = any> {
 }
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  process.env.API_URL || "http://localhost:5000";
 
 /**
  * Fetch client configured for express-session cookie authentication (credentials: 'include').
