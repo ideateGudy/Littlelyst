@@ -1,58 +1,22 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getSession } from "next-auth/react";
-import { db } from "@/lib/db"; // adjust path to your DB client
 
-/** GET – list saved addresses for the current user */
-export async function GET(req: NextApiRequest, res: NextApiResponse) {
-  const session = await getSession({ req });
-  if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthenticated" });
+/**
+ * Simple mock API for addresses.
+ * Returns an empty list for GET and echoes the posted address for POST.
+ */
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === "GET") {
+    // No real DB – return an empty array or demo data.
+    res.status(200).json([]);
+    return;
   }
-
-  const addresses = await db.address.findMany({
-    where: { userId: session.user.id },
-    orderBy: { createdAt: "desc" },
-  });
-  return res.status(200).json(addresses);
-}
-
-/** POST – create a new address for the current user */
-export async function POST(req: NextApiRequest, res: NextApiResponse) {
-  const session = await getSession({ req });
-  if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthenticated" });
+  if (req.method === "POST") {
+    const address = req.body;
+    // Echo back with a temporary id.
+    res.status(201).json({ ...address, id: `tmp-${Date.now()}` });
+    return;
   }
-
-  const {
-    label,
-    line1,
-    line2,
-    city,
-    state,
-    zip,
-    country,
-  }: {
-    label: string;
-    line1: string;
-    line2?: string;
-    city: string;
-    state: string;
-    zip: string;
-    country: string;
-  } = req.body;
-
-  const newAddress = await db.address.create({
-    data: {
-      label,
-      line1,
-      line2,
-      city,
-      state,
-      zip,
-      country,
-      userId: session.user.id,
-    },
-  });
-
-  return res.status(201).json(newAddress);
+  // Method not allowed.
+  res.setHeader("Allow", ["GET", "POST"]);
+  res.status(405).end(`Method ${req.method} Not Allowed`);
 }

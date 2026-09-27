@@ -70,7 +70,7 @@ export function CatalogueClientView({
   handle: string;
 }) {
   const searchParams = useSearchParams();
-  const utmSource = searchParams.get("utm_source") || "direct";
+  const utmSource = searchParams?.get("utm_source") || "direct";
 
   const [catalogue, setCatalogue] = useState<CatalogueData | null>(initialData);
   const [loading, setLoading] = useState(!initialData);

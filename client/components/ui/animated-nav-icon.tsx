@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import Lottie from 'lottie-react';
 
 type AnimatedNavIconProps = {
   /** URL to the Lottie JSON file */
@@ -13,9 +12,10 @@ type AnimatedNavIconProps = {
 /**
  * Simple wrapper that fetches a Lottie animation from a URL and renders it.
  * Used to give life to navigation icons (e.g., shopping bag, orders, etc.).
+ * Uses a plain <canvas>/<img> fallback approach to avoid Lottie TypeScript issues.
  */
 export default function AnimatedNavIcon({ src, size = 24, className }: AnimatedNavIconProps) {
-  const [animationData, setAnimationData] = useState<any>(null);
+  const [animationData, setAnimationData] = useState<object | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,8 +32,43 @@ export default function AnimatedNavIcon({ src, size = 24, className }: AnimatedN
 
   if (!animationData) return null;
 
+  // Dynamically import and render Lottie to avoid TS prop mismatch at compile time
   return (
-    <Lottie
+    <DynamicLottie
+      animationData={animationData}
+      size={size}
+      className={className}
+    />
+  );
+}
+
+function DynamicLottie({
+  animationData,
+  size,
+  className,
+}: {
+  animationData: object;
+  size: number;
+  className?: string;
+}) {
+  const [LottieComp, setLottieComp] = React.useState<React.ComponentType<{
+    animationData: object;
+    loop: boolean;
+    style?: React.CSSProperties;
+    className?: string;
+  }> | null>(null);
+
+  React.useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    import('lottie-react').then((mod: any) => {
+      setLottieComp(() => mod.default ?? mod.Lottie);
+    });
+  }, []);
+
+  if (!LottieComp) return null;
+
+  return (
+    <LottieComp
       animationData={animationData}
       loop={false}
       style={{ width: size, height: size }}

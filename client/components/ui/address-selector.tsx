@@ -24,7 +24,7 @@ interface Props {
 }
 
 /**
- * Dropdown of saved addresses for a signed‑in user plus a small inline form to add a new one.
+ * Dropdown of saved addresses for a signed-in user plus a small inline form to add a new one.
  */
 export default function AddressSelector({ selected, onSelect, onCreate }: Props) {
   const { user } = useAuth();
@@ -36,8 +36,8 @@ export default function AddressSelector({ selected, onSelect, onCreate }: Props)
   useEffect(() => {
     if (!user) return;
     apiClient<Address[]>("/api/addresses")
-      .then((res) => setAddresses(res.data))
-      .catch(() => toast.error("Failed to load saved addresses"));
+      .then((res) => setAddresses(res.data ?? []))
+      .catch(() => toast({ title: "Failed to load saved addresses", variant: "destructive" }));
   }, [user]);
 
   const handleCreate = async () => {
@@ -48,12 +48,16 @@ export default function AddressSelector({ selected, onSelect, onCreate }: Props)
         body: JSON.stringify(newAddr),
       });
       const created = resp.data;
-      setAddresses((prev) => [...prev, created]);
-      onCreate(created);
-      toast.success("Address saved");
+      if (created) {
+        setAddresses((prev) => [...prev, created]);
+        onCreate(created);
+        toast({ title: "Address saved", variant: "default" });
+      } else {
+        toast({ title: "Failed to save address", variant: "destructive" });
+      }
       setShowNew(false);
     } catch {
-      toast.error("Could not save address");
+      toast({ title: "Could not save address", variant: "destructive" });
     }
   };
 
@@ -76,7 +80,7 @@ export default function AddressSelector({ selected, onSelect, onCreate }: Props)
         ))}
       </select>
 
-      {/* Add‑new button */}
+      {/* Add-new button */}
       <button
         type="button"
         className="mt-2 flex items-center gap-1 text-emerald-400 hover:text-emerald-300"

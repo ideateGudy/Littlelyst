@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { toast } from '@/components/ui/toast';
@@ -29,7 +30,7 @@ export default function AddressDashboard() {
   // Load addresses on component mount
   useEffect(() => {
     apiClient<Address[]>('/api/addresses')
-      .then((res) => setAddresses(res.data))
+      .then((res) => setAddresses(res.data ?? []))
       .catch(() => toast({ title: 'Failed to load addresses', variant: 'destructive' }))
       .finally(() => setLoading(false));
   }, []);
@@ -41,7 +42,7 @@ export default function AddressDashboard() {
         body: JSON.stringify(newAddr),
       });
       const created = resp.data;
-      setAddresses((prev) => [...prev, created]);
+      setAddresses((prev) => (created ? [...prev, created] : prev));
       toast({ title: 'Address saved', variant: 'default' });
       setNewAddr({});
       setShowForm(false);
