@@ -6,8 +6,12 @@ export interface ApiResponse<T = any> {
   [key: string]: any;
 }
 
-const API_URL =
-  process.env.API_URL || "http://localhost:5000";
+function getBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    return "";
+  }
+  return process.env.API_URL || "http://127.0.0.1:5000";
+}
 
 /**
  * Fetch client configured for express-session cookie authentication (credentials: 'include').
@@ -19,9 +23,10 @@ let refreshPromise: Promise<boolean> | null = null;
 async function attemptTokenRefresh(): Promise<boolean> {
   if (refreshPromise) return refreshPromise;
 
+  const baseUrl = getBaseUrl();
   refreshPromise = (async () => {
     try {
-      const res = await fetch(`${API_URL}/api/auth/refresh`, {
+      const res = await fetch(`${baseUrl}/api/auth/refresh`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -41,9 +46,10 @@ export async function apiClient<T = any>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
+  const baseUrl = getBaseUrl();
   const url = endpoint.startsWith("http")
     ? endpoint
-    : `${API_URL}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
+    : `${baseUrl}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
 
   const headers = new Headers(options.headers || {});
   if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
