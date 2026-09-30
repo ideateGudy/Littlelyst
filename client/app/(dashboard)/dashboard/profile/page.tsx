@@ -168,13 +168,17 @@ export default function ProfilePage() {
 
   /* ── Load addresses ── */
   useEffect(() => {
+    if (!user) return;
+    setAddrLoading(true);
     apiClient<Address[]>("/api/addresses")
-      .then((res) => setAddresses(res.data ?? []))
+      .then((res) => {
+        if (res.data) setAddresses(res.data);
+      })
       .catch(() =>
         toast({ title: "Failed to load addresses", variant: "destructive" })
       )
       .finally(() => setAddrLoading(false));
-  }, []);
+  }, [user]);
 
   /* ───── Handlers ───── */
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -282,9 +286,19 @@ export default function ProfilePage() {
   };
 
   const handleSaveAddress = async () => {
-    if (!newAddr.label || !newAddr.line1 || !newAddr.city) {
+    const payload = {
+      label: newAddr.label?.trim() || "Home",
+      line1: newAddr.line1?.trim() || "",
+      line2: newAddr.line2?.trim() || "",
+      city: newAddr.city?.trim() || newAddr.state || "Lagos",
+      state: newAddr.state || "Lagos",
+      zip: newAddr.zip || "100001",
+      country: newAddr.country || "Nigeria",
+    };
+
+    if (!payload.line1) {
       toast({
-        title: "Label, Line 1, and City are required",
+        title: "Please enter your street address",
         variant: "destructive",
       });
       return;
@@ -294,7 +308,7 @@ export default function ProfilePage() {
       if (editingAddrId) {
         const resp = await apiClient<Address>(`/api/addresses/${editingAddrId}`, {
           method: "PUT",
-          body: JSON.stringify(newAddr),
+          body: JSON.stringify(payload),
         });
         if (resp.data) {
           const updated = resp.data;
@@ -304,7 +318,7 @@ export default function ProfilePage() {
       } else {
         const resp = await apiClient<Address>("/api/addresses", {
           method: "POST",
-          body: JSON.stringify(newAddr),
+          body: JSON.stringify(payload),
         });
         if (resp.data) {
           const created = resp.data;

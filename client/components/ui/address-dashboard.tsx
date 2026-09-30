@@ -20,20 +20,26 @@ type Address = {
   country: string;
 };
 
+import { useAuth } from '@/lib/auth-context';
+
 /** Dashboard UI to view and add addresses */
+
 export default function AddressDashboard() {
+  const { user } = useAuth();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [newAddr, setNewAddr] = useState<Partial<Address>>({});
 
-  // Load addresses on component mount
+  // Load addresses when user is ready
   useEffect(() => {
+    if (!user) return;
+    setLoading(true);
     apiClient<Address[]>('/api/addresses')
       .then((res) => setAddresses(res.data ?? []))
       .catch(() => toast({ title: 'Failed to load addresses', variant: 'destructive' }))
       .finally(() => setLoading(false));
-  }, []);
+  }, [user]);
 
   const handleCreate = async () => {
     try {
