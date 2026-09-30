@@ -178,15 +178,98 @@ export class PromotionsService {
     }));
   }
 
+  async updateCoupon(
+    sellerId: string,
+    couponId: string,
+    dto: Partial<CreateCouponDto> & { isActive?: boolean },
+  ) {
+    const existing = await this.db
+      .select()
+      .from(coupons)
+      .where(and(eq(coupons.id, couponId), eq(coupons.sellerId, sellerId)))
+      .limit(1);
+
+    if (!existing[0]) {
+      throw new NotFoundException({
+        status: "failed",
+        message: "Coupon not found or unauthorized",
+      });
+    }
+
+    const updates: any = {};
+    if (dto.code) updates.code = dto.code.trim().toUpperCase();
+    if (dto.productId !== undefined) updates.productId = dto.productId || null;
+    if (dto.discountType) updates.discountType = dto.discountType;
+    if (dto.discountValue !== undefined) updates.discountValue = BigInt(dto.discountValue);
+    if (dto.maxRedemptions !== undefined) updates.maxRedemptions = dto.maxRedemptions;
+    if (dto.isActive !== undefined) updates.isActive = dto.isActive;
+    if (dto.startAt !== undefined) updates.startAt = dto.startAt ? new Date(dto.startAt) : null;
+    if (dto.endAt !== undefined) updates.endAt = dto.endAt ? new Date(dto.endAt) : null;
+
+    const updated = await this.db
+      .update(coupons)
+      .set(updates)
+      .where(and(eq(coupons.id, couponId), eq(coupons.sellerId, sellerId)))
+      .returning();
+
+    return {
+      ...updated[0],
+      discountValue: updated[0].discountValue.toString(),
+    };
+  }
+
+  async toggleCoupon(sellerId: string, couponId: string) {
+    const existing = await this.db
+      .select()
+      .from(coupons)
+      .where(and(eq(coupons.id, couponId), eq(coupons.sellerId, sellerId)))
+      .limit(1);
+
+    if (!existing[0]) {
+      throw new NotFoundException({
+        status: "failed",
+        message: "Coupon not found",
+      });
+    }
+
+    const updated = await this.db
+      .update(coupons)
+      .set({ isActive: !existing[0].isActive })
+      .where(and(eq(coupons.id, couponId), eq(coupons.sellerId, sellerId)))
+      .returning();
+
+    return {
+      ...updated[0],
+      discountValue: updated[0].discountValue.toString(),
+    };
+  }
+
+  async deleteCoupon(sellerId: string, couponId: string) {
+    const deleted = await this.db
+      .delete(coupons)
+      .where(and(eq(coupons.id, couponId), eq(coupons.sellerId, sellerId)))
+      .returning();
+
+    if (!deleted[0]) {
+      throw new NotFoundException({
+        status: "failed",
+        message: "Coupon not found",
+      });
+    }
+
+    return { status: "success", id: couponId };
+  }
+
   /**
    * Validates coupon eligibility and calculates discount safely server-side
    */
   async validateAndApplyCoupon(
     sellerId: string,
     code: string,
-    productId: string,
     basePriceMinor: bigint,
-  ): Promise<{ coupon: Coupon; finalPriceMinor: bigint; discountMinor: bigint }> {
+    productId?: string,
+    cartItems?: Array<{ productId: string; unitPriceMinor: number; quantity: number }>,
+  ): Promise<{ coupon: Coupon; finalPriceMinor: bigint; discountMinor: bigint; matchedProductId?: string }> {
     const cleanCode = code.trim().toUpperCase();
     const list = await this.db
       .select()
@@ -199,14 +282,6 @@ export class PromotionsService {
       throw new BadRequestException({
         status: "failed",
         message: "Invalid or inactive coupon code",
-      });
-    }
-
-    // Check product applicability
-    if (coupon.productId && coupon.productId !== productId) {
-      throw new BadRequestException({
-        status: "failed",
-        message: "Coupon is not applicable to this product",
       });
     }
 
@@ -233,15 +308,46 @@ export class PromotionsService {
       });
     }
 
+    let targetPriceMinor = basePriceMinor;
+    let matchedProductId: string | undefined = undefined;
+
+    // Check product applicability
+    if (coupon.productId) {
+      if (cartItems && cartItems.length > 0) {
+        const item = cartItems.find((i) => i.productId === coupon.productId);
+        if (!item) {
+          throw new BadRequestException({
+            status: "failed",
+            message: "Coupon is not applicable to any items in your cart",
+          });
+        }
+        targetPriceMinor = BigInt(item.unitPriceMinor * item.quantity);
+        matchedProductId = item.productId;
+      } else if (productId) {
+        if (coupon.productId !== productId) {
+          throw new BadRequestException({
+            status: "failed",
+            message: "Coupon is not applicable to this product",
+          });
+        }
+        matchedProductId = productId;
+      } else {
+        throw new BadRequestException({
+          status: "failed",
+          message: "Coupon is specific to a product",
+        });
+      }
+    }
+
     let discountMinor = 0n;
     if (coupon.discountType === "PERCENTAGE") {
       const pct = BigInt(coupon.discountValue);
-      discountMinor = (basePriceMinor * pct) / 100n;
+      discountMinor = (targetPriceMinor * pct) / 100n;
     } else if (coupon.discountType === "FIXED_AMOUNT") {
       discountMinor = BigInt(coupon.discountValue);
     } else if (coupon.discountType === "OVERRIDE_PRICE") {
       const overridePrice = BigInt(coupon.discountValue);
-      discountMinor = basePriceMinor > overridePrice ? basePriceMinor - overridePrice : 0n;
+      discountMinor = targetPriceMinor > overridePrice ? targetPriceMinor - overridePrice : 0n;
     }
 
     if (discountMinor > basePriceMinor) {
@@ -254,6 +360,7 @@ export class PromotionsService {
       coupon,
       finalPriceMinor,
       discountMinor,
+      matchedProductId,
     };
   }
 

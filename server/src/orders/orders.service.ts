@@ -176,8 +176,8 @@ export class OrdersService {
       const couponResult = await this.promotionsService.validateAndApplyCoupon(
         dto.sellerId,
         dto.couponCode,
-        dto.productId,
         subtotalMinor,
+        dto.productId,
       );
       totalMinor = couponResult.finalPriceMinor;
       discountMinor = couponResult.discountMinor;

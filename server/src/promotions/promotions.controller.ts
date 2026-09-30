@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Delete,
   Body,
   Param,
   UseGuards,
@@ -90,6 +91,49 @@ export class PromotionsController {
     };
   }
 
+  @Put("coupons/:id")
+  @UseGuards(AccessTokenGuard)
+  async updateCoupon(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param("id") id: string,
+    @Body() dto: Partial<CreateCouponDto> & { isActive?: boolean },
+  ) {
+    const data = await this.promotionsService.updateCoupon(user.id, id, dto);
+    return {
+      status: "success",
+      message: "Coupon updated successfully",
+      data,
+    };
+  }
+
+  @Put("coupons/:id/toggle")
+  @UseGuards(AccessTokenGuard)
+  async toggleCoupon(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param("id") id: string,
+  ) {
+    const data = await this.promotionsService.toggleCoupon(user.id, id);
+    return {
+      status: "success",
+      message: `Coupon ${data.isActive ? "activated" : "deactivated"} successfully`,
+      data,
+    };
+  }
+
+  @Delete("coupons/:id")
+  @UseGuards(AccessTokenGuard)
+  async deleteCoupon(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param("id") id: string,
+  ) {
+    const data = await this.promotionsService.deleteCoupon(user.id, id);
+    return {
+      status: "success",
+      message: "Coupon deleted successfully",
+      data,
+    };
+  }
+
   // Public checkout endpoint for coupon validation
   @Post("validate-coupon")
   async validateCoupon(
@@ -97,15 +141,17 @@ export class PromotionsController {
     body: {
       sellerId: string;
       code: string;
-      productId: string;
+      productId?: string;
       basePriceMinor: number | string;
+      cartItems?: Array<{ productId: string; unitPriceMinor: number; quantity: number }>;
     },
   ) {
     const result = await this.promotionsService.validateAndApplyCoupon(
       body.sellerId,
       body.code,
-      body.productId,
       BigInt(body.basePriceMinor),
+      body.productId,
+      body.cartItems,
     );
 
     return {
@@ -115,6 +161,7 @@ export class PromotionsController {
         code: result.coupon.code,
         discountMinor: result.discountMinor.toString(),
         finalPriceMinor: result.finalPriceMinor.toString(),
+        matchedProductId: result.matchedProductId,
         redemptionsRemaining:
           result.coupon.maxRedemptions - result.coupon.redemptionsCount,
       },
