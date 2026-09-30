@@ -24,12 +24,11 @@ export class EmailService {
         },
       });
 
-      this.transporter.verify((error) => {
-        if (error) {
-          this.logger.error("Error connecting to email server:", error);
-        } else {
-          this.logger.log("Email server is ready to send messages");
-        }
+      this.transporter.verify().then(() => {
+        this.logger.log("Email server is ready to send messages");
+      }).catch((error) => {
+        this.logger.error(`Error connecting to email server: ${error.message}. Falling back to mock mode.`);
+        this.transporter = null;
       });
     } else {
       this.logger.warn(
