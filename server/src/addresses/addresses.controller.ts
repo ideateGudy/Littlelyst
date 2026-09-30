@@ -38,10 +38,10 @@ export class AddressesController {
     @Body() dto: CreateAddressDto,
   ) {
     const data = await this.addressesService.create(user.id, {
-      label: dto.label,
+      label: dto.label || "Home",
       line1: dto.line1,
       line2: dto.line2 ?? null,
-      city: dto.city,
+      city: dto.city || dto.state || "Lagos",
       state: dto.state ?? "",
       zip: dto.zip ?? "",
       country: dto.country ?? "Nigeria",
