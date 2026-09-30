@@ -230,11 +230,19 @@ export function CatalogueClientView({
           buyerAddress: activeProduct.productType === "PHYSICAL" ? buyerAddress : undefined,
           couponCode: couponApplied ? couponApplied.code : undefined,
           trafficSource: utmSource,
+          paymentMethod: paymentMethod === "pod" ? "PAY_ON_DELIVERY" : "PAYSTACK",
         }),
       });
 
       if (res.data) {
         const orderData = res.data;
+
+        // If Pay on Delivery, directly set checkoutSuccess without launching Paystack
+        if (paymentMethod === "pod") {
+          setCheckoutSuccess(orderData);
+          setCheckingOut(false);
+          return;
+        }
 
         // 2. Launch Paystack Pop-up (Card, Transfer, USSD, Mobile Money)
         await triggerPaystackCheckout({
@@ -320,39 +328,50 @@ export function CatalogueClientView({
       >
         {/* Verified Status & Story Ring on Avatar */}
         <div className="relative inline-block">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              if (catalogue.products.length > 0) {
-                setStoryProductIndex(0);
-                setStoryImageIndex(0);
-                setStoryOpen(true);
-              }
-            }}
-            className="group relative p-1 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-emerald-400 cursor-pointer shadow-[0_0_25px_rgba(244,63,94,0.3)] block"
-            title="Click to watch product flash sales"
-          >
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full p-0.5 bg-black overflow-hidden">
-              {catalogue.seller.avatarUrl ? (
-                <img
-                  src={catalogue.seller.avatarUrl}
-                  alt={catalogue.seller.name}
-                  className="w-full h-full object-cover rounded-full"
-                />
-              ) : (
-                <div className="w-full h-full bg-[#0d0d0d] rounded-full flex items-center justify-center text-emerald-400 font-extrabold text-2xl">
-                  {catalogue.seller.name.charAt(0)}
+          {(() => {
+            const hasPromos = (catalogue.products || []).some((p) => !!p.activePromotion);
+            return (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  if (hasPromos) {
+                    setStoryProductIndex(0);
+                    setStoryImageIndex(0);
+                    setStoryOpen(true);
+                  }
+                }}
+                className={`group relative p-1 rounded-full ${
+                  hasPromos
+                    ? "bg-gradient-to-tr from-amber-500 via-rose-500 to-emerald-400 cursor-pointer shadow-[0_0_25px_rgba(244,63,94,0.3)]"
+                    : "border-2 border-white/10 cursor-default"
+                } block`}
+                title={hasPromos ? "Click to watch product flash sales" : catalogue.seller.name}
+              >
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full p-0.5 bg-black overflow-hidden">
+                  {catalogue.seller.avatarUrl ? (
+                    <img
+                      src={catalogue.seller.avatarUrl}
+                      alt={catalogue.seller.name}
+                      className="w-full h-full object-cover rounded-full"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-[#0d0d0d] rounded-full flex items-center justify-center text-emerald-400 font-extrabold text-2xl">
+                      {catalogue.seller.name.charAt(0)}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* Tap to view story pill */}
-            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap bg-rose-500 hover:bg-rose-400 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full shadow-lg border border-white/30 flex items-center gap-1 uppercase tracking-wider">
-              <Flame className="w-2.5 h-2.5 animate-bounce" />
-              <span>Flash Sales</span>
-            </div>
-          </motion.button>
+                {/* Tap to view story pill ONLY if active promo exists */}
+                {hasPromos && (
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap bg-rose-500 hover:bg-rose-400 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full shadow-lg border border-white/30 flex items-center gap-1 uppercase tracking-wider">
+                    <Flame className="w-2.5 h-2.5 animate-bounce" />
+                    <span>Flash Sales</span>
+                  </div>
+                )}
+              </motion.button>
+            );
+          })()}
         </div>
 
         <div className="space-y-1 pt-1">
@@ -881,9 +900,9 @@ export function CatalogueClientView({
                   <div className="space-y-1.5 pt-1">
                     <label className="text-[11px] font-semibold text-white/80 uppercase tracking-wider flex items-center justify-between">
                       <span>Payment Method</span>
-                      <span className="text-[10px] text-emerald-400 font-normal">Encrypted & Instant</span>
+                      <span className="text-[10px] text-emerald-400 font-normal">Secure Checkout</span>
                     </label>
-                    <div className="grid grid-cols-2 gap-2.5">
+                    <div className={`grid ${activeProduct.productType === "PHYSICAL" ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2"} gap-2.5`}>
                       {/* Paystack - Active */}
                       <button
                         type="button"
@@ -897,26 +916,49 @@ export function CatalogueClientView({
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-extrabold text-white">Paystack</span>
                           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                            Active
+                            Instant
                           </span>
                         </div>
                         <p className="text-[10px] text-white/50 mt-1 leading-snug">
-                          Cards, Transfers, USSD & Mobile Money
+                          Cards, Bank Transfer & USSD
                         </p>
                       </button>
 
+                      {/* Pay on Delivery - Available for Physical Products */}
+                      {activeProduct.productType === "PHYSICAL" && (
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod("pod")}
+                          className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                            paymentMethod === "pod"
+                              ? "border-emerald-400 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.25)]"
+                              : "border-white/10 bg-white/[0.02] hover:border-white/20"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-extrabold text-white">Pay on Delivery</span>
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                              Cash / POS
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-white/50 mt-1 leading-snug">
+                            Pay when your item arrives
+                          </p>
+                        </button>
+                      )}
+
                       {/* Stripe - Coming Soon */}
                       <div
-                        className="p-3 rounded-2xl border border-white/5 bg-white/[0.01] text-left opacity-60 cursor-not-allowed select-none relative overflow-hidden"
+                        className="p-3 rounded-2xl border border-white/5 bg-white/[0.01] text-left opacity-50 cursor-not-allowed select-none relative overflow-hidden hidden sm:block"
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-bold text-white/60">Stripe</span>
                           <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-white/10 text-white/50 border border-white/10">
-                            Coming soon
+                            Soon
                           </span>
                         </div>
                         <p className="text-[10px] text-white/40 mt-1 leading-snug">
-                          International Cards & Apple Pay
+                          Intl Cards & Apple Pay
                         </p>
                       </div>
                     </div>
@@ -1005,6 +1047,10 @@ export function CatalogueClientView({
                   >
                     {checkingOut ? (
                       <span className="w-4 h-4 rounded-full border-2 border-black border-t-transparent animate-spin" />
+                    ) : paymentMethod === "pod" ? (
+                      <>
+                        Place Order (Pay on Delivery) <ArrowRight className="w-4 h-4" />
+                      </>
                     ) : (
                       <>
                         Pay Instantly <ArrowRight className="w-4 h-4" />

@@ -139,11 +139,18 @@ export function ProductDetailView({ data }: { data: PublicProductData }) {
           buyerAddress: product.productType === "PHYSICAL" ? buyerAddress : undefined,
           couponCode: couponApplied ? couponApplied.code : undefined,
           trafficSource: "direct",
+          paymentMethod: paymentMethod === "pod" ? "PAY_ON_DELIVERY" : "PAYSTACK",
         }),
       });
 
       if (res.data) {
         const orderData = res.data;
+
+        if (paymentMethod === "pod") {
+          setCheckoutSuccess(orderData);
+          setCheckingOut(false);
+          return;
+        }
 
         await triggerPaystackCheckout({
           email: orderData.buyerEmail,
@@ -549,9 +556,9 @@ export function ProductDetailView({ data }: { data: PublicProductData }) {
                   <div className="space-y-1.5 pt-1">
                     <label className="text-[11px] font-semibold text-white/80 uppercase tracking-wider flex items-center justify-between">
                       <span>Payment Method</span>
-                      <span className="text-[10px] text-emerald-400 font-normal">Encrypted & Instant</span>
+                      <span className="text-[10px] text-emerald-400 font-normal">Secure Checkout</span>
                     </label>
-                    <div className="grid grid-cols-2 gap-2.5">
+                    <div className={`grid ${product.productType === "PHYSICAL" ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2"} gap-2.5`}>
                       {/* Paystack - Active */}
                       <button
                         type="button"
@@ -565,26 +572,49 @@ export function ProductDetailView({ data }: { data: PublicProductData }) {
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-extrabold text-white">Paystack</span>
                           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                            Active
+                            Instant
                           </span>
                         </div>
                         <p className="text-[10px] text-white/50 mt-1 leading-snug">
-                          Cards, Transfers, USSD & Mobile Money
+                          Cards, Bank Transfer & USSD
                         </p>
                       </button>
 
+                      {/* Pay on Delivery - Available for Physical Products */}
+                      {product.productType === "PHYSICAL" && (
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod("pod")}
+                          className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                            paymentMethod === "pod"
+                              ? "border-emerald-400 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.25)]"
+                              : "border-white/10 bg-white/[0.02] hover:border-white/20"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-extrabold text-white">Pay on Delivery</span>
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                              Cash / POS
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-white/50 mt-1 leading-snug">
+                            Pay when your item arrives
+                          </p>
+                        </button>
+                      )}
+
                       {/* Stripe - Coming Soon */}
                       <div
-                        className="p-3 rounded-2xl border border-white/5 bg-white/[0.01] text-left opacity-60 cursor-not-allowed select-none relative overflow-hidden"
+                        className="p-3 rounded-2xl border border-white/5 bg-white/[0.01] text-left opacity-50 cursor-not-allowed select-none relative overflow-hidden hidden sm:block"
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-bold text-white/60">Stripe</span>
                           <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-white/10 text-white/50 border border-white/10">
-                            Coming soon
+                            Soon
                           </span>
                         </div>
                         <p className="text-[10px] text-white/40 mt-1 leading-snug">
-                          International Cards & Apple Pay
+                          Intl Cards & Apple Pay
                         </p>
                       </div>
                     </div>
@@ -641,6 +671,10 @@ export function ProductDetailView({ data }: { data: PublicProductData }) {
                   >
                     {checkingOut ? (
                       <span className="w-4 h-4 rounded-full border-2 border-black border-t-transparent animate-spin" />
+                    ) : paymentMethod === "pod" ? (
+                      <>
+                        Place Order (Pay on Delivery) — {couponApplied ? formatNaira(couponApplied.finalPriceMinor) : formatNaira(currentPrice)} <ArrowRight className="w-4 h-4" />
+                      </>
                     ) : (
                       <>
                         Pay Instantly — {couponApplied ? formatNaira(couponApplied.finalPriceMinor) : formatNaira(currentPrice)} <ArrowRight className="w-4 h-4" />
