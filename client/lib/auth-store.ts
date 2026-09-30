@@ -14,6 +14,7 @@ export interface AuthUser {
   paystackBankName?: string | null;
   paystackAccountNumber?: string | null;
   role?: "seller" | "buyer" | "admin" | "super-admin";
+  reminderEmailTemplate?: string | null;
 }
 
 export type User = AuthUser;

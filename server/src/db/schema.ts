@@ -65,6 +65,7 @@ export const users = pgTable("users", {
   paystackBankName: varchar("paystack_bank_name", { length: 100 }),
   paystackAccountNumber: varchar("paystack_account_number", { length: 30 }),
   commissionPercent: integer("commission_percent").notNull().default(5), // 5% default
+  reminderEmailTemplate: varchar("reminder_email_template", { length: 2000 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -171,6 +172,7 @@ export const orders = pgTable(
     sellerNetMinor: bigint("seller_net_minor", { mode: "bigint" }).notNull(),
     couponId: uuid("coupon_id").references(() => coupons.id),
     status: orderStatus("status").notNull().default("PENDING"),
+    paymentMethod: varchar("payment_method", { length: 50 }).notNull().default("PAYSTACK"),
     paystackReference: varchar("paystack_reference", { length: 150 }).notNull().unique(),
     paystackChannel: paymentChannel("paystack_channel"),
     trafficSource: varchar("traffic_source", { length: 100 }).default("direct"), // whatsapp, instagram, gbp, direct
@@ -287,3 +289,23 @@ export type LedgerEntry = typeof ledgerEntries.$inferSelect;
 export type NewLedgerEntry = typeof ledgerEntries.$inferInsert;
 export type RefreshToken = typeof refreshTokens.$inferSelect;
 export type NewRefreshToken = typeof refreshTokens.$inferInsert;
+
+/* ─────────────── Addresses ─────────────── */
+export const addresses = pgTable("addresses", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id),
+  label: varchar("label", { length: 50 }).notNull(),
+  line1: varchar("line1", { length: 255 }).notNull(),
+  line2: varchar("line2", { length: 255 }),
+  city: varchar("city", { length: 100 }).notNull(),
+  state: varchar("state", { length: 100 }).notNull().default(""),
+  zip: varchar("zip", { length: 20 }).notNull().default(""),
+  country: varchar("country", { length: 100 }).notNull().default("Nigeria"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type Address = typeof addresses.$inferSelect;
+export type NewAddress = typeof addresses.$inferInsert;
+

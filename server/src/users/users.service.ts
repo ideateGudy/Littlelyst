@@ -109,6 +109,7 @@ export class UsersService {
       paystackBankName?: string;
       paystackAccountNumber?: string;
       role?: "seller" | "admin" | "super-admin" | "buyer";
+      reminderEmailTemplate?: string;
     },
   ): Promise<User> {
     if (data.handle) {
@@ -134,6 +135,7 @@ export class UsersService {
         ...(data.paystackBankName ? { paystackBankName: data.paystackBankName } : {}),
         ...(data.paystackAccountNumber ? { paystackAccountNumber: data.paystackAccountNumber } : {}),
         ...(data.role ? { role: data.role } : {}),
+        ...(data.reminderEmailTemplate !== undefined ? { reminderEmailTemplate: data.reminderEmailTemplate } : {}),
       })
       .where(eq(users.id, userId))
       .returning();

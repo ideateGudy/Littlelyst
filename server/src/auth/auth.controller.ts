@@ -269,6 +269,7 @@ export class AuthController {
       avatarUrl?: string;
       paystackBankName?: string;
       paystackAccountNumber?: string;
+      reminderEmailTemplate?: string;
     },
   ) {
     const userId = user?.id || (req as any).session?.userId;
@@ -310,5 +311,24 @@ export class AuthController {
       user: updated,
     };
   }
+
+  @Post("change-password")
+  @UseGuards(AccessTokenGuard)
+  @HttpCode(HttpStatus.OK)
+  async changePassword(
+    @CurrentUser() user: CurrentUserPayload,
+    @Req() req: Request,
+    @Body() body: { currentPassword: string; newPassword: string },
+  ) {
+    const userId = user?.id || (req as any).session?.userId;
+    await this.authService.changePassword(userId, body.currentPassword, body.newPassword);
+    return {
+      status: "success",
+      message: "Password changed successfully",
+    };
+  }
 }
+
+
+
 

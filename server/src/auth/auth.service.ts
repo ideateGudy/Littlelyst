@@ -3,7 +3,9 @@ import {
   ConflictException,
   UnauthorizedException,
   NotFoundException,
+  BadRequestException,
 } from "@nestjs/common";
+
 import jwt, { SignOptions } from "jsonwebtoken";
 import crypto from "crypto";
 import { UsersService } from "../users/users.service.js";
@@ -222,6 +224,7 @@ export class AuthService {
       paystackAccountNumber: user.paystackAccountNumber,
       role: (user as any).role || "seller",
       systemUser: user.systemUser === true || (user as any).role === "super-admin",
+      reminderEmailTemplate: (user as any).reminderEmailTemplate || null,
     };
   }
 
@@ -360,6 +363,7 @@ export class AuthService {
       avatarUrl?: string;
       paystackBankName?: string;
       paystackAccountNumber?: string;
+      reminderEmailTemplate?: string;
     },
   ) {
     const updated = await this.usersService.updateProfile(userId, data);
@@ -375,6 +379,7 @@ export class AuthService {
       paystackAccountNumber: updated.paystackAccountNumber,
       role: (updated as any).role || "seller",
       systemUser: updated.systemUser === true || (updated as any).role === "super-admin",
+      reminderEmailTemplate: (updated as any).reminderEmailTemplate || null,
     };
   }
 
@@ -436,5 +441,31 @@ export class AuthService {
       systemUser: updated.systemUser === true || (updated as any).role === "super-admin",
     };
   }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException({ status: "failed", message: "User not found" });
+    }
+
+    const isMatch = await this.usersService.comparePassword(currentPassword, user.passwordHash);
+    if (!isMatch) {
+      throw new UnauthorizedException({
+        status: "failed",
+        message: "Current password is incorrect",
+      });
+    }
+
+    if (newPassword.length < 8) {
+      throw new BadRequestException({
+        status: "failed",
+        message: "New password must be at least 8 characters",
+      });
+    }
+
+    await this.usersService.updatePassword(userId, newPassword);
+    return { changed: true };
+  }
 }
+
 

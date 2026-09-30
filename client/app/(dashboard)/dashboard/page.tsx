@@ -100,6 +100,7 @@ export default function DashboardPage() {
   const [storeBio, setStoreBio] = useState("");
   const [storePhone, setStorePhone] = useState("");
   const [storeAvatarUrl, setStoreAvatarUrl] = useState("");
+  const [storeReminderTemplate, setStoreReminderTemplate] = useState("");
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [storeSaving, setStoreSaving] = useState(false);
   const [storeError, setStoreError] = useState("");
@@ -110,6 +111,7 @@ export default function DashboardPage() {
     setStoreBio(user?.bio || "");
     setStorePhone(user?.phone || "");
     setStoreAvatarUrl(user?.avatarUrl || "");
+    setStoreReminderTemplate(user?.reminderEmailTemplate || "");
     setStoreError("");
     setStoreSuccess(false);
     setEditingStoreModal(true);
@@ -149,6 +151,7 @@ export default function DashboardPage() {
           bio: storeBio.trim() || undefined,
           phone: storePhone.trim() || undefined,
           avatarUrl: storeAvatarUrl || undefined,
+          reminderEmailTemplate: storeReminderTemplate.trim() || undefined,
         }),
       });
 
@@ -833,14 +836,16 @@ export default function DashboardPage() {
                     <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3.5">
                       <div className="space-y-2">
                         {/* Countdown Timer in Card Content flow if promo is active */}
-                        {item.activePromotion && (
-                          <div className="flex items-center gap-2">
-                            <CountdownTimer targetDate={item.activePromotion.endAt} />
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 uppercase tracking-wide">
-                              Flash Sale
-                            </span>
-                          </div>
-                        )}
+                        {item.activePromotion &&
+                          item.activePromotion.isActive !== false &&
+                          new Date(item.activePromotion.endAt).getTime() > Date.now() && (
+                            <div className="flex items-center gap-2">
+                              <CountdownTimer targetDate={item.activePromotion.endAt} />
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 uppercase tracking-wide">
+                                Flash Sale
+                              </span>
+                            </div>
+                          )}
 
                         <h3 className="text-base font-extrabold text-[var(--foreground)] line-clamp-1 group-hover:text-emerald-500 transition-colors">
                           {item.title}
@@ -1185,6 +1190,23 @@ export default function DashboardPage() {
                       placeholder="+234 801 234 5678"
                       className="w-full bg-black/60 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-emerald-400 focus:outline-none font-mono"
                     />
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-white/80">Abandoned Checkout Email Template</label>
+                      <span className="text-[10px] text-emerald-400 font-mono">Dynamic</span>
+                    </div>
+                    <textarea
+                      rows={3}
+                      value={storeReminderTemplate}
+                      onChange={(e) => setStoreReminderTemplate(e.target.value)}
+                      placeholder="Hi {buyerName}, we noticed you didn't finish checking out {productTitle}. Complete your order here: {storeLink}"
+                      className="w-full bg-black/60 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-emerald-400 focus:outline-none leading-relaxed"
+                    />
+                    <p className="text-[10px] text-white/40">
+                      Use tags: <code className="text-emerald-400 font-mono">{"{buyerName}"}</code>, <code className="text-emerald-400 font-mono">{"{productTitle}"}</code>, <code className="text-emerald-400 font-mono">{"{storeLink}"}</code>
+                    </p>
                   </div>
 
                   {storeError && <p className="text-xs text-rose-400 font-semibold">{storeError}</p>}
