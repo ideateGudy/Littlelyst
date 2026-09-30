@@ -379,6 +379,41 @@ export class OrdersService {
       .where(eq(orders.id, orderId))
       .returning();
 
+    if (newStatus === "PAID") {
+      try {
+        const prodDetails = await this.db
+          .select({
+            productTitle: products.title,
+            digitalFileUrl: products.digitalFileUrl,
+            digitalKeyOrNote: products.digitalKeyOrNote,
+            sellerName: users.name,
+            sellerHandle: users.handle,
+          })
+          .from(products)
+          .innerJoin(users, eq(products.sellerId, users.id))
+          .where(eq(products.id, existing[0].productId))
+          .limit(1);
+
+        if (prodDetails[0]) {
+          await this.emailService.sendOrderReceiptEmail({
+            to: existing[0].buyerEmail,
+            buyerName: existing[0].buyerName,
+            orderId: existing[0].id,
+            productTitle: prodDetails[0].productTitle,
+            quantity: existing[0].quantity,
+            totalMinor: existing[0].totalMinor,
+            paystackReference: existing[0].paystackReference,
+            sellerName: prodDetails[0].sellerName,
+            sellerHandle: prodDetails[0].sellerHandle,
+            digitalFileUrl: prodDetails[0].digitalFileUrl,
+            digitalKeyOrNote: prodDetails[0].digitalKeyOrNote,
+          });
+        }
+      } catch (err) {
+        // Non-blocking email dispatch
+      }
+    }
+
     return serializeOrder(updated[0]);
   }
 

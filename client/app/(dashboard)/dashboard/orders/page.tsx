@@ -25,8 +25,10 @@ import {
   XCircle,
   Bell,
   RotateCcw,
+  FileText,
 } from "lucide-react";
 import { LoadingScreen } from "@/components/ui/loading-screen";
+import { ReceiptModal, ReceiptData } from "@/components/ui/receipt-modal";
 
 interface OrderItem {
   id: string;
@@ -58,10 +60,11 @@ export default function OrdersPage() {
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [remindingId, setRemindingId] = useState<string | null>(null);
+  const [selectedReceipt, setSelectedReceipt] = useState<ReceiptData | null>(null);
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (silent = false) => {
     try {
-      setRefreshing(true);
+      if (!silent) setRefreshing(true);
       const res = await apiClient<OrderItem[]>("/api/orders");
       if (res.data) {
         setOrders(res.data);
@@ -69,8 +72,10 @@ export default function OrdersPage() {
     } catch (err: any) {
       console.error("Failed to load seller orders:", err);
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!silent) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
@@ -80,6 +85,13 @@ export default function OrdersPage() {
       return;
     }
     fetchOrders();
+
+    // Real-time background update every 10s for orders & top KPI cards
+    const interval = setInterval(() => {
+      fetchOrders(true);
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, [user, router]);
 
   const handleUpdateStatus = async (
@@ -197,7 +209,7 @@ export default function OrdersPage() {
           </p>
         </div>
         <button
-          onClick={fetchOrders}
+          onClick={() => fetchOrders()}
           disabled={refreshing}
           className="liquid-glass-button p-2.5 rounded-xl text-white/70 hover:text-white cursor-pointer self-start sm:self-auto"
           title="Refresh Orders"
@@ -402,6 +414,22 @@ export default function OrdersPage() {
                     </span>
 
                     <div className="flex items-center gap-1.5 flex-wrap">
+                      {/* View Receipt Button */}
+                      <button
+                        onClick={() =>
+                          setSelectedReceipt({
+                            ...order,
+                            sellerName: user?.name,
+                            sellerHandle: user?.handle,
+                          })
+                        }
+                        className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white border border-white/10 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                        title="View Official Receipt"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Receipt</span>
+                      </button>
+
                       {/* Mark Delivered — only for PHYSICAL products that are not already fulfilled */}
                       {isPhysical && !isFulfilled && !isCancelled && (
                         <button
@@ -496,6 +524,12 @@ export default function OrdersPage() {
           })}
         </div>
       )}
+
+      {/* Receipt Modal */}
+      <ReceiptModal
+        receipt={selectedReceipt}
+        onClose={() => setSelectedReceipt(null)}
+      />
     </div>
   );
 }

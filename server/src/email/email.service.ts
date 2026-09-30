@@ -193,4 +193,80 @@ export class EmailService {
 
     await this.sendEmail(to, subject, bodyText, html);
   }
+
+  async sendOrderReceiptEmail(params: {
+    to: string;
+    buyerName: string;
+    orderId: string;
+    productTitle: string;
+    quantity: number;
+    totalMinor: string | number | bigint;
+    paystackReference: string;
+    sellerName: string;
+    sellerHandle: string;
+    digitalFileUrl?: string | null;
+    digitalKeyOrNote?: string | null;
+  }): Promise<void> {
+    const formattedAmount = `₦${(Number(params.totalMinor) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const subject = `Receipt for your purchase of "${params.productTitle}" on Littlelyst`;
+
+    const bodyText = `Hi ${params.buyerName},\n\nThank you for your purchase from ${params.sellerName} (@${params.sellerHandle})!\n\nOrder Receipt #${params.paystackReference}\nItem: ${params.productTitle} (x${params.quantity})\nTotal Paid: ${formattedAmount}\nStatus: PAID\n\nBest regards,\nLittlelyst`;
+
+    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Order Receipt</title></head>
+<body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,sans-serif;color:#333;">
+<div style="max-width:600px;margin:30px auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.06);border:1px solid #e5e7eb;">
+  <div style="background:#059669;padding:24px;text-align:center;">
+    <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">Payment Received 🎉</h1>
+    <p style="margin:4px 0 0 0;color:#d1fae5;font-size:13px;">Official Littlelyst Purchase Receipt</p>
+  </div>
+  <div style="padding:28px;">
+    <p style="font-size:15px;line-height:1.5;margin-top:0;">Hi <strong>${params.buyerName}</strong>,</p>
+    <p style="font-size:14px;color:#4b5563;line-height:1.5;">Thank you for buying from <strong>${params.sellerName}</strong> (@${params.sellerHandle}). Below are your payment and order details:</p>
+
+    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin:20px 0;">
+      <table style="width:100%;font-size:13px;border-collapse:collapse;">
+        <tr>
+          <td style="padding:6px 0;color:#6b7280;">Reference:</td>
+          <td style="padding:6px 0;text-align:right;font-family:monospace;font-weight:bold;color:#111827;">${params.paystackReference}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;color:#6b7280;">Merchant:</td>
+          <td style="padding:6px 0;text-align:right;font-weight:bold;color:#10b981;">@${params.sellerHandle}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;color:#6b7280;">Item Purchased:</td>
+          <td style="padding:6px 0;text-align:right;font-weight:bold;color:#111827;">${params.productTitle} (x${params.quantity})</td>
+        </tr>
+        <tr style="border-top:1px solid #e5e7eb;">
+          <td style="padding:10px 0 4px 0;font-size:15px;font-weight:bold;color:#111827;">Total Paid:</td>
+          <td style="padding:10px 0 4px 0;text-align:right;font-size:16px;font-weight:bold;color:#059669;">${formattedAmount}</td>
+        </tr>
+      </table>
+    </div>
+
+    ${
+      params.digitalFileUrl
+        ? `<div style="text-align:center;margin:24px 0;">
+             <a href="${params.digitalFileUrl}" style="background:#059669;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;display:inline-block;">Download Purchased Files 📥</a>
+           </div>`
+        : ""
+    }
+
+    ${
+      params.digitalKeyOrNote
+        ? `<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:12px;margin:16px 0;font-size:13px;color:#065f46;">
+             <strong>Access Note / Key:</strong> ${params.digitalKeyOrNote}
+           </div>`
+        : ""
+    }
+
+    <p style="font-size:12px;color:#9ca3af;margin-top:24px;text-align:center;">Need help? Reply to this email or contact the seller at littlelyst.com/${params.sellerHandle}</p>
+  </div>
+  <div style="background:#f9fafb;padding:14px;text-align:center;border-top:1px solid #e5e7eb;">
+    <p style="margin:0;font-size:11px;color:#9ca3af;">© ${new Date().getFullYear()} Littlelyst Commerce. All rights reserved.</p>
+  </div>
+</div></body></html>`;
+
+    await this.sendEmail(params.to, subject, bodyText, html);
+  }
 }

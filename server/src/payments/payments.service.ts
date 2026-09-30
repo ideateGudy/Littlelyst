@@ -13,12 +13,14 @@ import {
   ledgerEntries,
 } from "../db/schema.js";
 import { PaymentRegistryService } from "./payment-registry.service.js";
+import { EmailService } from "../email/email.service.js";
 
 @Injectable()
 export class PaymentsService {
   constructor(
     @Inject(DRIZZLE) private readonly db: DrizzleDb,
     private readonly paymentRegistry: PaymentRegistryService,
+    private readonly emailService: EmailService,
   ) {}
 
   private get paystackSecret(): string {
@@ -245,6 +247,40 @@ export class PaymentsService {
         } catch (e) {
           // Idempotency or already recorded
         }
+      }
+
+      // Send email receipt asynchronously
+      try {
+        const prodDetails = await this.db
+          .select({
+            productTitle: products.title,
+            digitalFileUrl: products.digitalFileUrl,
+            digitalKeyOrNote: products.digitalKeyOrNote,
+            sellerName: users.name,
+            sellerHandle: users.handle,
+          })
+          .from(products)
+          .innerJoin(users, eq(products.sellerId, users.id))
+          .where(eq(products.id, order.productId))
+          .limit(1);
+
+        if (prodDetails[0]) {
+          await this.emailService.sendOrderReceiptEmail({
+            to: order.buyerEmail,
+            buyerName: order.buyerName,
+            orderId: order.id,
+            productTitle: prodDetails[0].productTitle,
+            quantity: order.quantity,
+            totalMinor: order.totalMinor,
+            paystackReference: order.paystackReference,
+            sellerName: prodDetails[0].sellerName,
+            sellerHandle: prodDetails[0].sellerHandle,
+            digitalFileUrl: prodDetails[0].digitalFileUrl,
+            digitalKeyOrNote: prodDetails[0].digitalKeyOrNote,
+          });
+        }
+      } catch (err) {
+        // Non-blocking email dispatch failure logging
       }
 
       return { status: "processed", orderId: order.id };
