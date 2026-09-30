@@ -11,8 +11,8 @@ export default function NotFound() {
 
       <div className="relative z-10 flex flex-col items-center gap-6 max-w-md">
         {/* Logo */}
-        <Link href="/" className="mb-2">
-          <Logo className="w-10 h-10 opacity-80" />
+        <Link href="/" className="mb-2 flex items-center justify-center">
+          <Logo size="lg" className="opacity-90 hover:opacity-100 transition-opacity" />
         </Link>
 
         {/* 404 */}
