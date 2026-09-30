@@ -43,6 +43,13 @@ export function CartSheet() {
   const [checkoutError, setCheckoutError] = useState("");
   const [checkoutSuccess, setCheckoutSuccess] = useState<any | null>(null);
   const [couponCode, setCouponCode] = useState('');
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [couponApplied, setCouponApplied] = useState<{
     code: string;
@@ -216,25 +223,28 @@ export function CartSheet() {
   return (
     <>
       {/* Floating Cart Trigger Pill if items exist and drawer is closed */}
-      {totalCount > 0 && !isOpen && (
-        <motion.button
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0, opacity: 0 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setIsOpen(true)}
-          className="fixed bottom-20 sm:bottom-8 right-5 z-40 px-4 py-3 rounded-full bg-emerald-500 text-black font-extrabold text-xs flex items-center gap-2.5 shadow-[0_0_25px_rgba(16,185,129,0.5)] cursor-pointer"
-        >
-          <div className="relative">
-            <ShoppingBag className="w-4 h-4" />
-            <span className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-black text-emerald-400 text-[10px] font-bold flex items-center justify-center">
-              {totalCount}
-            </span>
-          </div>
-          <span>Cart ({formatNaira(totalAmountMinor)})</span>
-        </motion.button>
-      )}
+      <AnimatePresence>
+        {totalCount > 0 && !isOpen && (
+          <motion.button
+            key="floating-cart-pill"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsOpen(true)}
+            className="fixed bottom-20 sm:bottom-8 right-5 z-40 px-4 py-3 rounded-full bg-emerald-500 text-black font-extrabold text-xs flex items-center gap-2.5 shadow-[0_0_25px_rgba(16,185,129,0.5)] cursor-pointer"
+          >
+            <div className="relative">
+              <ShoppingBag className="w-4 h-4" />
+              <span className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-black text-emerald-400 text-[10px] font-bold flex items-center justify-center">
+                {totalCount}
+              </span>
+            </div>
+            <span>Cart ({formatNaira(totalAmountMinor)})</span>
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* Cart Drawer Modal */}
       <AnimatePresence>

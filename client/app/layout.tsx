@@ -5,6 +5,8 @@ import { AppInitializer } from "@/components/ui/app-initializer";
 import { CartSheet } from "@/components/ui/cart-sheet";
 import { Toaster } from "react-hot-toast";
 
+import Script from "next/script";
+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -103,8 +105,7 @@ export default function RootLayout({
           Turbopack dev mode. The file is tiny and loads synchronously before
           first paint, preventing theme flash.
         */}
-        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-        <script src="/theme-init.js" />
+        <Script src="/theme-init.js" strategy="beforeInteractive" />
       </head>
       <body className="antialiased min-h-screen bg-[#050505] text-[#e5e4e2] overflow-x-hidden selection:bg-emerald-500 selection:text-black">
 
