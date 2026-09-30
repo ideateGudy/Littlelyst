@@ -49,7 +49,6 @@ export function CartSheet() {
     setMounted(true);
   }, []);
 
-  if (!mounted) return null;
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [couponApplied, setCouponApplied] = useState<{
     code: string;
@@ -79,6 +78,8 @@ export function CartSheet() {
       document.body.style.overflow = "unset";
     };
   }, [isOpen]);
+
+  if (!mounted) return null;
 
   const formatNaira = (minor: number) => {
     return `₦${(minor / 100).toLocaleString(undefined, {
