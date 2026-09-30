@@ -156,4 +156,27 @@ export class UsersService {
   async comparePassword(password: string, hash: string): Promise<boolean> {
     return bcrypt.compare(password, hash);
   }
+
+  async submitKyc(
+    userId: string,
+    data: {
+      kycDocumentType: string;
+      kycDocumentNumber: string;
+      kycDocumentUrl?: string;
+    },
+  ): Promise<User> {
+    const results = await this.db
+      .update(users)
+      .set({
+        kycDocumentType: data.kycDocumentType,
+        kycDocumentNumber: data.kycDocumentNumber.trim(),
+        ...(data.kycDocumentUrl ? { kycDocumentUrl: data.kycDocumentUrl } : {}),
+        kycStatus: "VERIFIED",
+        isVerified: true,
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    return results[0];
+  }
 }

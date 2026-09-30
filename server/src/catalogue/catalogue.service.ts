@@ -26,6 +26,8 @@ export class CatalogueService {
         handle: users.handle,
         bio: users.bio,
         avatarUrl: users.avatarUrl,
+        isVerified: users.isVerified,
+        kycStatus: users.kycStatus,
         createdAt: users.createdAt,
         role: users.role,
       })

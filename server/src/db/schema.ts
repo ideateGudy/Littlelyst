@@ -67,6 +67,11 @@ export const users = pgTable("users", {
   paystackAccountNumber: varchar("paystack_account_number", { length: 30 }),
   commissionPercent: integer("commission_percent").notNull().default(5), // 5% default
   reminderEmailTemplate: varchar("reminder_email_template", { length: 2000 }),
+  isVerified: boolean("is_verified").notNull().default(false),
+  kycStatus: varchar("kyc_status", { length: 20 }).notNull().default("UNVERIFIED"),
+  kycDocumentType: varchar("kyc_document_type", { length: 50 }),
+  kycDocumentNumber: varchar("kyc_document_number", { length: 100 }),
+  kycDocumentUrl: varchar("kyc_document_url", { length: 500 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

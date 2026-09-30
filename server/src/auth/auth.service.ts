@@ -222,10 +222,25 @@ export class AuthService {
       avatarUrl: user.avatarUrl,
       paystackBankName: user.paystackBankName,
       paystackAccountNumber: user.paystackAccountNumber,
+      isVerified: user.isVerified ?? false,
+      kycStatus: user.kycStatus || "UNVERIFIED",
+      kycDocumentType: user.kycDocumentType || null,
       role: (user as any).role || "seller",
       systemUser: user.systemUser === true || (user as any).role === "super-admin",
       reminderEmailTemplate: (user as any).reminderEmailTemplate || null,
     };
+  }
+
+  async submitKyc(
+    userId: string,
+    data: {
+      kycDocumentType: string;
+      kycDocumentNumber: string;
+      kycDocumentUrl?: string;
+    },
+  ) {
+    const updated = await this.usersService.submitKyc(userId, data);
+    return this.getCurrentUser(updated.id);
   }
 
   // In-memory OTP store for phone / email verification (identifier -> { code, expiresAt })

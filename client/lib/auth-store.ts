@@ -13,6 +13,9 @@ export interface AuthUser {
   paystackSubaccountCode?: string | null;
   paystackBankName?: string | null;
   paystackAccountNumber?: string | null;
+  isVerified?: boolean;
+  kycStatus?: string | null;
+  kycDocumentType?: string | null;
   role?: "seller" | "buyer" | "admin" | "super-admin";
   reminderEmailTemplate?: string | null;
 }

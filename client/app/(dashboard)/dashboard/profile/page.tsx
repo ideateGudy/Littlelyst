@@ -25,6 +25,10 @@ import {
   CheckCircle2,
   Loader2,
   AtSign,
+  ShieldCheck,
+  Upload,
+  BadgeCheck,
+  AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -155,6 +159,55 @@ export default function ProfilePage() {
   const [showAddrForm, setShowAddrForm] = useState(false);
   const [newAddr, setNewAddr] = useState<Partial<Address>>({});
   const [addrSaving, setAddrSaving] = useState(false);
+
+  /* ── KYC state ── */
+  const [kycDocType, setKycDocType] = useState("NIN");
+  const [kycDocNum, setKycDocNum] = useState("");
+  const [kycDocUrl, setKycDocUrl] = useState("");
+  const [kycUploading, setKycUploading] = useState(false);
+  const [kycSaving, setKycSaving] = useState(false);
+
+  const handleKycDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setKycUploading(true);
+      const url = await uploadToCloudinary(file);
+      setKycDocUrl(url);
+      toast({ title: "ID Document photo uploaded successfully!" });
+    } catch {
+      toast({ title: "Failed to upload ID document", variant: "destructive" });
+    } finally {
+      setKycUploading(false);
+    }
+  };
+
+  const handleSubmitKyc = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!kycDocNum.trim()) {
+      toast({ title: "Please enter your document ID number", variant: "destructive" });
+      return;
+    }
+    setKycSaving(true);
+    try {
+      const res = await apiClient<{ status: string; user: any }>("/api/auth/kyc", {
+        method: "POST",
+        body: JSON.stringify({
+          kycDocumentType: kycDocType,
+          kycDocumentNumber: kycDocNum.trim(),
+          kycDocumentUrl: kycDocUrl || undefined,
+        }),
+      });
+      if (res.user) {
+        updateUser(res.user);
+        toast({ title: "Identity verified! Verified badge active on storefront.", variant: "default" });
+      }
+    } catch (err: any) {
+      toast({ title: err.message || "Failed to submit verification", variant: "destructive" });
+    } finally {
+      setKycSaving(false);
+    }
+  };
 
   /* ── Populate from auth ── */
   useEffect(() => {
@@ -465,6 +518,113 @@ export default function ProfilePage() {
             </button>
           </div>
         </form>
+      </GlassCard>
+
+      {/* ══════════ KYC Verification Card ══════════ */}
+      <GlassCard className="border-emerald-500/20 relative overflow-hidden">
+        <SectionTitle icon={ShieldCheck} label="KYC Identity Verification" />
+
+        {user?.isVerified ? (
+          <div className="p-4 sm:p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-emerald-500 text-black font-black flex items-center justify-center text-xs">
+                ✓
+              </span>
+              <h3 className="text-sm font-extrabold text-white">Merchant Identity Verified</h3>
+            </div>
+            <p className="text-xs text-white/70 leading-relaxed">
+              Your identity (<strong className="text-emerald-400">{user.kycDocumentType || "Verified ID"}</strong>) has been verified. The green verified checkmark badge <span className="text-emerald-400 font-bold">✓</span> is active on your public catalogue storefront.
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmitKyc} className="space-y-4">
+            <p className="text-xs text-white/60 leading-relaxed">
+              Provide a valid means of identification (standard for Nigeria/West Africa) to display the verified merchant checkmark badge <span className="text-emerald-400 font-bold">✓</span> on your public store.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+                  Means of Identification *
+                </label>
+                <select
+                  value={kycDocType}
+                  onChange={(e) => setKycDocType(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:border-emerald-500/50 focus:outline-none"
+                >
+                  <option value="NIN" className="bg-gray-900 text-white">
+                    NIN (National Identity Number)
+                  </option>
+                  <option value="VOTER_CARD" className="bg-gray-900 text-white">
+                    INEC Voter&apos;s Card
+                  </option>
+                  <option value="DRIVERS_LICENSE" className="bg-gray-900 text-white">
+                    FRSC Driver&apos;s Licence
+                  </option>
+                  <option value="PASSPORT" className="bg-gray-900 text-white">
+                    International Passport
+                  </option>
+                  <option value="CAC" className="bg-gray-900 text-white">
+                    CAC Business Registration
+                  </option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+                  Document ID Number *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={kycDocNum}
+                  onChange={(e) => setKycDocNum(e.target.value)}
+                  placeholder="e.g. 12345678901"
+                  className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm placeholder-white/25 focus:border-emerald-500/50 focus:outline-none font-mono"
+                />
+              </div>
+            </div>
+
+            {/* Document Photo Upload */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-white/50 uppercase tracking-wider flex items-center justify-between">
+                <span>Upload ID Document Photo (Optional)</span>
+                {kycDocUrl && <span className="text-emerald-400 font-mono text-[10px]">Photo Uploaded ✓</span>}
+              </label>
+              <div className="flex items-center gap-3">
+                <label className="px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 hover:border-emerald-500/50 text-white text-xs font-semibold flex items-center gap-2 cursor-pointer transition-all">
+                  {kycUploading ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+                  ) : (
+                    <Upload className="w-4 h-4 text-emerald-400" />
+                  )}
+                  <span>{kycDocUrl ? "Change ID Photo" : "Upload ID Document Photo"}</span>
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="hidden"
+                    onChange={handleKycDocUpload}
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="submit"
+                disabled={kycSaving}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-extrabold text-sm shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:opacity-95 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {kycSaving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ShieldCheck className="w-4 h-4" />
+                )}
+                <span>Verify Identity &amp; Unlock Badge</span>
+              </button>
+            </div>
+          </form>
+        )}
       </GlassCard>
 
       {/* ══════════ Password card ══════════ */}

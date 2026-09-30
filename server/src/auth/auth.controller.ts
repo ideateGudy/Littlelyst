@@ -327,6 +327,28 @@ export class AuthController {
       message: "Password changed successfully",
     };
   }
+
+  @Post("kyc")
+  @UseGuards(AccessTokenGuard)
+  @HttpCode(HttpStatus.OK)
+  async submitKyc(
+    @CurrentUser() user: CurrentUserPayload,
+    @Req() req: Request,
+    @Body() body: { kycDocumentType: string; kycDocumentNumber: string; kycDocumentUrl?: string },
+  ) {
+    const userId = user?.id || (req as any).session?.userId;
+    const updatedUser = await this.authService.submitKyc(userId, body);
+
+    if ((req as any).session) {
+      (req as any).session.user = updatedUser;
+    }
+
+    return {
+      status: "success",
+      message: "Identity verified successfully!",
+      user: updatedUser,
+    };
+  }
 }
 
 

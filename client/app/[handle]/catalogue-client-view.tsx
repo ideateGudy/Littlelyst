@@ -41,6 +41,8 @@ export interface CatalogueData {
     handle: string;
     bio?: string | null;
     avatarUrl?: string | null;
+    isVerified?: boolean;
+    kycStatus?: string | null;
   };
   products: Array<{
     id: string;
@@ -380,12 +382,14 @@ export function CatalogueClientView({
             <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
               {catalogue.seller.name}
             </h1>
-            <span
-              className="w-4 h-4 rounded-full bg-emerald-500 text-black flex items-center justify-center text-[10px] font-black inline-flex"
-              title="Verified Merchant"
-            >
-              ✓
-            </span>
+            {catalogue.seller.isVerified && (
+              <span
+                className="w-4 h-4 rounded-full bg-emerald-500 text-black flex items-center justify-center text-[10px] font-black inline-flex shrink-0"
+                title="Verified Identity Merchant"
+              >
+                ✓
+              </span>
+            )}
           </div>
 
           <div className="flex items-center justify-center gap-2">
