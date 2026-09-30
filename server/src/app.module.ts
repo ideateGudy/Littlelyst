@@ -17,6 +17,7 @@ import { PaymentsModule } from "./payments/payments.module.js";
 import { AnalyticsModule } from "./analytics/analytics.module.js";
 import { UploadsModule } from "./uploads/uploads.module.js";
 import { AdminModule } from "./admin/admin.module.js";
+import { AddressesModule } from "./addresses/addresses.module.js";
 import { AppController } from "./app.controller.js";
 import { AppService } from "./app.service.js";
 
@@ -40,6 +41,7 @@ import { AppService } from "./app.service.js";
     AnalyticsModule,
     UploadsModule,
     AdminModule,
+    AddressesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
