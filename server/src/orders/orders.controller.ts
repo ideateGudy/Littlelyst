@@ -72,7 +72,7 @@ export class OrdersController {
   @UseGuards(AccessTokenGuard)
   async updateStatus(
     @Param("id") id: string,
-    @Body() body: { status: "PENDING" | "PAID" | "FULFILLED" | "CANCELLED" | "FAILED" },
+    @Body() body: { status: "PENDING" | "PAID" | "FULFILLED" | "CANCELLED" | "FAILED" | "REFUNDED" },
     @CurrentUser() user: CurrentUserPayload,
   ) {
     const data = await this.ordersService.updateOrderStatus(id, user.id, body.status);

@@ -355,7 +355,7 @@ export class OrdersService {
   async updateOrderStatus(
     orderId: string,
     sellerId: string,
-    newStatus: "PENDING" | "PAID" | "FULFILLED" | "CANCELLED" | "FAILED",
+    newStatus: "PENDING" | "PAID" | "FULFILLED" | "CANCELLED" | "FAILED" | "REFUNDED",
   ) {
     const existing = await this.db
       .select()

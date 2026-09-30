@@ -140,33 +140,35 @@ export default function DashboardLayout({
               </Link>
             )}
 
-            {/* Seller / Buyer mode toggle */}
-            <div className="hidden sm:flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-xl p-1">
-              <button
-                onClick={() => handleSwitchRole("seller")}
-                disabled={switchingRole || user.role === "seller"}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  user.role === "seller"
-                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                    : "text-white/40 hover:text-white cursor-pointer"
-                }`}
-                title="Switch to Seller mode"
-              >
-                Seller
-              </button>
-              <button
-                onClick={() => handleSwitchRole("buyer")}
-                disabled={switchingRole || user.role === "buyer"}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  user.role === "buyer"
-                    ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
-                    : "text-white/40 hover:text-white cursor-pointer"
-                }`}
-                title="Switch to Buyer mode"
-              >
-                Buyer
-              </button>
-            </div>
+            {/* Seller / Buyer mode toggle — hide on Admin pages */}
+            {!pathname?.startsWith("/admin") && (
+              <div className="hidden sm:flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-xl p-1">
+                <button
+                  onClick={() => handleSwitchRole("seller")}
+                  disabled={switchingRole || user.role === "seller"}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                    user.role === "seller"
+                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                      : "text-white/40 hover:text-white cursor-pointer"
+                  }`}
+                  title="Switch to Seller mode"
+                >
+                  Seller
+                </button>
+                <button
+                  onClick={() => handleSwitchRole("buyer")}
+                  disabled={switchingRole || user.role === "buyer"}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                    user.role === "buyer"
+                      ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
+                      : "text-white/40 hover:text-white cursor-pointer"
+                  }`}
+                  title="Switch to Buyer mode"
+                >
+                  Buyer
+                </button>
+              </div>
+            )}
 
             <ThemeToggle size="sm" />
             <div className="h-4 w-[1px] bg-white/15 mx-1" />

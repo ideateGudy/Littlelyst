@@ -2,6 +2,9 @@ import {
   Controller,
   Get,
   Post,
+  Put,
+  Delete,
+  Param,
   Body,
   UseGuards,
   HttpCode,
@@ -11,6 +14,9 @@ import { AddressesService } from "./addresses.service.js";
 import { AccessTokenGuard } from "../common/guards/jwt-auth.guard.js";
 import { CurrentUser } from "../common/decorators/current-user.decorator.js";
 import type { CurrentUserPayload } from "../common/decorators/current-user.decorator.js";
+
+import { CreateAddressDto } from "./dto/create-address.dto.js";
+import { UpdateAddressDto } from "./dto/update-address.dto.js";
 
 @Controller("api/addresses")
 export class AddressesController {
@@ -29,26 +35,40 @@ export class AddressesController {
   @HttpCode(HttpStatus.CREATED)
   async create(
     @CurrentUser() user: CurrentUserPayload,
-    @Body()
-    body: {
-      label: string;
-      line1: string;
-      line2?: string;
-      city: string;
-      state?: string;
-      zip?: string;
-      country?: string;
-    },
+    @Body() dto: CreateAddressDto,
   ) {
     const data = await this.addressesService.create(user.id, {
-      label: body.label,
-      line1: body.line1,
-      line2: body.line2 ?? null,
-      city: body.city,
-      state: body.state ?? "",
-      zip: body.zip ?? "",
-      country: body.country ?? "Nigeria",
+      label: dto.label,
+      line1: dto.line1,
+      line2: dto.line2 ?? null,
+      city: dto.city,
+      state: dto.state ?? "",
+      zip: dto.zip ?? "",
+      country: dto.country ?? "Nigeria",
     });
+    return { status: "success", data };
+  }
+
+  @Put(":id")
+  @UseGuards(AccessTokenGuard)
+  @HttpCode(HttpStatus.OK)
+  async update(
+    @Param("id") id: string,
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: UpdateAddressDto,
+  ) {
+    const data = await this.addressesService.update(id, user.id, dto);
+    return { status: "success", data };
+  }
+
+  @Delete(":id")
+  @UseGuards(AccessTokenGuard)
+  @HttpCode(HttpStatus.OK)
+  async delete(
+    @Param("id") id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    const data = await this.addressesService.delete(id, user.id);
     return { status: "success", data };
   }
 }

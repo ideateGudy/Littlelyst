@@ -20,12 +20,21 @@ import {
   EyeOff,
   Plus,
   Trash2,
+  Pencil,
   ArrowLeft,
   CheckCircle2,
   Loader2,
   AtSign,
 } from "lucide-react";
 import Link from "next/link";
+
+export const NIGERIA_STATES = [
+  "Lagos", "FCT - Abuja", "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno",
+  "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "Gombe",
+  "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi", "Kwara",
+  "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo", "Plateau",
+  "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara"
+];
 
 /* ─────────────────────────── types ─────────────────────────── */
 type Address = {
@@ -254,6 +263,24 @@ export default function ProfilePage() {
     }
   };
 
+  const [editingAddrId, setEditingAddrId] = useState<string | null>(null);
+
+  const handleEditAddress = (addr: Address) => {
+    setEditingAddrId(addr.id);
+    setNewAddr(addr);
+    setShowAddrForm(true);
+  };
+
+  const handleDeleteAddress = async (id: string) => {
+    try {
+      await apiClient(`/api/addresses/${id}`, { method: "DELETE" });
+      setAddresses((prev) => prev.filter((a) => a.id !== id));
+      toast({ title: "Address deleted", variant: "default" });
+    } catch {
+      toast({ title: "Failed to delete address", variant: "destructive" });
+    }
+  };
+
   const handleSaveAddress = async () => {
     if (!newAddr.label || !newAddr.line1 || !newAddr.city) {
       toast({
@@ -264,19 +291,32 @@ export default function ProfilePage() {
     }
     setAddrSaving(true);
     try {
-      const resp = await apiClient<Address>("/api/addresses", {
-        method: "POST",
-        body: JSON.stringify(newAddr),
-      });
-      const created = resp.data;
-      if (created) {
-        setAddresses((prev) => [...prev, created]);
-        toast({ title: "Address saved", variant: "default" });
+      if (editingAddrId) {
+        const resp = await apiClient<Address>(`/api/addresses/${editingAddrId}`, {
+          method: "PUT",
+          body: JSON.stringify(newAddr),
+        });
+        if (resp.data) {
+          const updated = resp.data;
+          setAddresses((prev) => prev.map((a) => (a.id === editingAddrId ? updated : a)));
+          toast({ title: "Address updated", variant: "default" });
+        }
+      } else {
+        const resp = await apiClient<Address>("/api/addresses", {
+          method: "POST",
+          body: JSON.stringify(newAddr),
+        });
+        if (resp.data) {
+          const created = resp.data;
+          setAddresses((prev) => [...prev, created]);
+          toast({ title: "Address saved", variant: "default" });
+        }
       }
       setNewAddr({});
+      setEditingAddrId(null);
       setShowAddrForm(false);
-    } catch {
-      toast({ title: "Could not save address", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: err.message || "Could not save address", variant: "destructive" });
     } finally {
       setAddrSaving(false);
     }
@@ -516,8 +556,18 @@ export default function ProfilePage() {
           <SectionTitle icon={MapPin} label="Saved Addresses" />
           <button
             type="button"
-            onClick={() => setShowAddrForm((v) => !v)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-bold transition-all"
+            onClick={() => {
+              if (showAddrForm) {
+                setShowAddrForm(false);
+                setEditingAddrId(null);
+                setNewAddr({});
+              } else {
+                setEditingAddrId(null);
+                setNewAddr({ country: "Nigeria" });
+                setShowAddrForm(true);
+              }
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-bold transition-all cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             {showAddrForm ? "Cancel" : "Add address"}
@@ -544,25 +594,46 @@ export default function ProfilePage() {
                 key={addr.id}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-start gap-3 p-4 rounded-xl bg-black/30 border border-white/5"
+                className="flex items-start justify-between gap-3 p-4 rounded-xl bg-black/30 border border-white/5"
               >
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                  <MapPin className="w-4 h-4 text-emerald-400" />
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                    <MapPin className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-white">{addr.label}</p>
+                    <p className="text-xs text-white/50 mt-0.5">
+                      {addr.line1}
+                      {addr.line2 ? `, ${addr.line2}` : ""}, {addr.city},{" "}
+                      {addr.state} {addr.zip}, {addr.country}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-white">{addr.label}</p>
-                  <p className="text-xs text-white/50 mt-0.5">
-                    {addr.line1}
-                    {addr.line2 ? `, ${addr.line2}` : ""}, {addr.city},{" "}
-                    {addr.state} {addr.zip}, {addr.country}
-                  </p>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleEditAddress(addr)}
+                    className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors"
+                    title="Edit address"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteAddress(addr.id)}
+                    className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors"
+                    title="Delete address"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </motion.div>
             ))}
           </div>
         )}
 
-        {/* New address form */}
+        {/* New / Edit address form */}
         {showAddrForm && (
           <motion.div
             initial={{ opacity: 0, y: -8 }}
@@ -570,42 +641,76 @@ export default function ProfilePage() {
             className="mt-4 p-5 rounded-2xl bg-black/30 border border-white/10 space-y-4"
           >
             <p className="text-xs font-bold text-white/60 uppercase tracking-wider">
-              New Address
+              {editingAddrId ? "Edit Address" : "New Address"}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {[
-                { key: "label", placeholder: "Label (Home, Work…)" },
-                { key: "line1", placeholder: "Street Line 1" },
-                { key: "line2", placeholder: "Line 2 (optional)" },
-                { key: "city", placeholder: "City" },
-                { key: "state", placeholder: "State / Province" },
-                { key: "zip", placeholder: "ZIP / Postcode" },
-                { key: "country", placeholder: "Country" },
-              ].map(({ key, placeholder }) => (
-                <input
-                  key={key}
-                  placeholder={placeholder}
-                  value={(newAddr as any)[key] ?? ""}
-                  onChange={(e) =>
-                    setNewAddr({ ...newAddr, [key]: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm placeholder-white/25 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-all"
-                />
-              ))}
+              <input
+                placeholder="Label (Home, Office…)"
+                value={newAddr.label || ""}
+                onChange={(e) => setNewAddr({ ...newAddr, label: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm placeholder-white/25 focus:border-emerald-500/50 focus:outline-none"
+              />
+              <input
+                placeholder="Street Address Line 1 *"
+                value={newAddr.line1 || ""}
+                onChange={(e) => setNewAddr({ ...newAddr, line1: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm placeholder-white/25 focus:border-emerald-500/50 focus:outline-none"
+              />
+              <input
+                placeholder="Line 2 (optional)"
+                value={newAddr.line2 || ""}
+                onChange={(e) => setNewAddr({ ...newAddr, line2: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm placeholder-white/25 focus:border-emerald-500/50 focus:outline-none"
+              />
+              <input
+                placeholder="City *"
+                value={newAddr.city || ""}
+                onChange={(e) => setNewAddr({ ...newAddr, city: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm placeholder-white/25 focus:border-emerald-500/50 focus:outline-none"
+              />
+              <select
+                value={newAddr.state || ""}
+                onChange={(e) => setNewAddr({ ...newAddr, state: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:border-emerald-500/50 focus:outline-none"
+              >
+                <option value="">Select State (Nigeria)</option>
+                {NIGERIA_STATES.map((s) => (
+                  <option key={s} value={s} className="bg-gray-900 text-white">
+                    {s}
+                  </option>
+                ))}
+              </select>
+              <input
+                placeholder="Country"
+                value={newAddr.country || "Nigeria"}
+                onChange={(e) => setNewAddr({ ...newAddr, country: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm placeholder-white/25 focus:border-emerald-500/50 focus:outline-none"
+              />
             </div>
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddrForm(false);
+                  setEditingAddrId(null);
+                  setNewAddr({});
+                }}
+                className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 text-sm font-bold transition-all"
+              >
+                Cancel
+              </button>
               <button
                 type="button"
                 disabled={addrSaving}
                 onClick={handleSaveAddress}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-bold text-sm transition-all"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-bold text-sm transition-all cursor-pointer"
               >
                 {addrSaving ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <Save className="w-4 h-4" />
                 )}
-                Save Address
+                <span>{editingAddrId ? "Update Address" : "Save Address"}</span>
               </button>
             </div>
           </motion.div>

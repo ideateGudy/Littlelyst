@@ -69,10 +69,10 @@ export default function BuyerProfilePage() {
     }
   };
 
-  const handleSwitchToSeller = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanHandle = storeHandle.toLowerCase().trim().replace(/[^a-z0-9-_]/g, "");
-    if (!cleanHandle || cleanHandle.length < 3) {
+  const handleSwitchToSeller = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const handleToUse = user?.handle || storeHandle.toLowerCase().trim().replace(/[^a-z0-9-_]/g, "");
+    if (!handleToUse || handleToUse.length < 3) {
       setSwitchError("Store handle must be at least 3 characters");
       return;
     }
@@ -86,16 +86,14 @@ export default function BuyerProfilePage() {
         method: "POST",
         body: JSON.stringify({
           targetRole: "seller",
-          handle: cleanHandle,
+          handle: handleToUse,
         }),
       });
 
       if (res.user) {
         updateUser(res.user);
         setSwitchSuccess(true);
-        setTimeout(() => {
-          router.push("/dashboard");
-        }, 1200);
+        router.push("/dashboard");
       }
     } catch (err: any) {
       setSwitchError(err.message || "Failed to switch to seller account");
@@ -229,46 +227,70 @@ export default function BuyerProfilePage() {
           </div>
         )}
 
-        <form onSubmit={handleSwitchToSeller} className="space-y-4 pt-2">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-white/80 flex items-center justify-between">
-              <span>Choose your unique store handle</span>
-              <span className="text-[10px] text-white/40 font-mono">littlelyst.com/{storeHandle || "your-store"}</span>
-            </label>
-            <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-mono text-emerald-400">@</span>
-              <input
-                type="text"
-                required
-                value={storeHandle}
-                onChange={(e) => setStoreHandle(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, ""))}
-                placeholder="chiomasboutique"
-                className="w-full bg-black/60 border border-white/10 rounded-xl pl-8 pr-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-emerald-400 transition-colors font-mono"
-              />
+        {user?.handle ? (
+          <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-white/10">
+            <div className="text-xs text-white/70">
+              Your merchant handle: <span className="font-mono font-bold text-emerald-400">@{user.handle}</span>
             </div>
-          </div>
-
-          <div className="pt-2 flex items-center justify-between border-t border-white/10">
-            <span className="text-[11px] text-white/40">
-              No data lost • Instant switch to merchant tools
-            </span>
 
             <button
-              type="submit"
+              type="button"
+              onClick={() => handleSwitchToSeller()}
               disabled={switching}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 text-black font-extrabold text-xs flex items-center gap-1.5 shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:opacity-95 transition-all cursor-pointer disabled:opacity-50"
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 text-black font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:opacity-95 transition-all cursor-pointer disabled:opacity-50"
             >
               {switching ? (
                 <span className="w-3.5 h-3.5 rounded-full border-2 border-black border-t-transparent animate-spin" />
               ) : (
                 <>
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Activate Seller Storefront</span>
+                  <span>Switch to Seller Dashboard</span>
                 </>
               )}
             </button>
           </div>
-        </form>
+        ) : (
+          <form onSubmit={handleSwitchToSeller} className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-white/80 flex items-center justify-between">
+                <span>Choose your unique store handle</span>
+                <span className="text-[10px] text-white/40 font-mono">littlelyst.com/{storeHandle || "your-store"}</span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-mono text-emerald-400">@</span>
+                <input
+                  type="text"
+                  required
+                  value={storeHandle}
+                  onChange={(e) => setStoreHandle(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, ""))}
+                  placeholder="chiomasboutique"
+                  className="w-full bg-black/60 border border-white/10 rounded-xl pl-8 pr-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-emerald-400 transition-colors font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-between border-t border-white/10">
+              <span className="text-[11px] text-white/40">
+                No data lost • Instant switch to merchant tools
+              </span>
+
+              <button
+                type="submit"
+                disabled={switching}
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 text-black font-extrabold text-xs flex items-center gap-1.5 shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:opacity-95 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {switching ? (
+                  <span className="w-3.5 h-3.5 rounded-full border-2 border-black border-t-transparent animate-spin" />
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Activate Seller Storefront</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

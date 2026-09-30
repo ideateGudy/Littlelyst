@@ -1,5 +1,5 @@
 import { Injectable, Inject } from "@nestjs/common";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { DRIZZLE } from "../db/index.js";
 import type { DrizzleDb } from "../db/index.js";
 import { addresses } from "./addresses.schema.js";
@@ -23,5 +23,22 @@ export class AddressesService {
       .values({ ...dto, userId })
       .returning();
     return inserted[0];
+  }
+
+  async update(id: string, userId: string, dto: Partial<NewAddress>) {
+    const updated = await this.db
+      .update(addresses)
+      .set(dto)
+      .where(and(eq(addresses.id, id), eq(addresses.userId, userId)))
+      .returning();
+    return updated[0];
+  }
+
+  async delete(id: string, userId: string) {
+    const deleted = await this.db
+      .delete(addresses)
+      .where(and(eq(addresses.id, id), eq(addresses.userId, userId)))
+      .returning();
+    return deleted[0];
   }
 }

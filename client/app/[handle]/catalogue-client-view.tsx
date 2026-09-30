@@ -4,6 +4,7 @@ import { Logo } from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { CountdownTimer } from "@/components/ui/countdown-timer";
 import { AddToCartModal } from "@/components/ui/add-to-cart-modal";
+import AddressSelector from "@/components/ui/address-selector";
 
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -965,17 +966,7 @@ export function CatalogueClientView({
                   </div>
 
                   {activeProduct.productType === "PHYSICAL" && (
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-white/80">Delivery Address</label>
-                      <textarea
-                        required
-                        value={buyerAddress}
-                        onChange={(e) => setBuyerAddress(e.target.value)}
-                        placeholder="12 Admiralty Way, Lekki Phase 1, Lagos"
-                        rows={2}
-                        className="w-full bg-black/60 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-white/30 focus:border-emerald-400 focus:outline-none"
-                      />
-                    </div>
+                    <AddressSelector value={buyerAddress} onChange={setBuyerAddress} />
                   )}
 
                   {/* Coupon Code Input */}

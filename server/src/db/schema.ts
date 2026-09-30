@@ -42,6 +42,7 @@ export const orderStatus = pgEnum("order_status", [
   "FULFILLED",
   "CANCELLED",
   "FAILED",
+  "REFUNDED",
 ]);
 export const paymentChannel = pgEnum("payment_channel", [
   "CARD",

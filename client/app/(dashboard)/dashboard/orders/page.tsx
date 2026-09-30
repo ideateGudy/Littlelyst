@@ -24,6 +24,7 @@ import {
   PackageCheck,
   XCircle,
   Bell,
+  RotateCcw,
 } from "lucide-react";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 
@@ -38,7 +39,7 @@ interface OrderItem {
   totalMinor: string;
   sellerNetMinor: string;
   platformFeeMinor: string;
-  status: "PENDING" | "PAID" | "FULFILLED" | "CANCELLED" | "FAILED";
+  status: "PENDING" | "PAID" | "FULFILLED" | "CANCELLED" | "FAILED" | "REFUNDED";
   paymentMethod?: "PAYSTACK" | "PAY_ON_DELIVERY" | string;
   trafficSource: string;
   paystackReference: string;
@@ -83,7 +84,7 @@ export default function OrdersPage() {
 
   const handleUpdateStatus = async (
     orderId: string,
-    newStatus: "PENDING" | "PAID" | "FULFILLED" | "CANCELLED" | "FAILED",
+    newStatus: "PENDING" | "PAID" | "FULFILLED" | "CANCELLED" | "FAILED" | "REFUNDED",
   ) => {
     try {
       setUpdatingId(orderId);
@@ -270,6 +271,7 @@ export default function OrdersPage() {
             { id: "FULFILLED", label: "Delivered" },
             { id: "PENDING", label: "Pending" },
             { id: "CANCELLED", label: "Cancelled" },
+            { id: "REFUNDED", label: "Refunded" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -440,15 +442,16 @@ export default function OrdersPage() {
                         </button>
                       )}
 
-                      {/* Cancel — only if not already cancelled or fulfilled */}
-                      {!isCancelled && !isFulfilled && (
+                      {/* Refund — available for successful payments (PAID or FULFILLED) */}
+                      {(isPaid || isFulfilled) && order.status !== "REFUNDED" && (
                         <button
-                          onClick={() => handleUpdateStatus(order.id, "CANCELLED")}
+                          onClick={() => handleUpdateStatus(order.id, "REFUNDED")}
                           disabled={isUpdating}
-                          className="px-2 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[11px] font-bold transition-all cursor-pointer disabled:opacity-50"
-                          title="Cancel Order"
+                          className="px-2.5 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+                          title="Refund this order"
                         >
-                          Cancel
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Refund</span>
                         </button>
                       )}
                     </div>
