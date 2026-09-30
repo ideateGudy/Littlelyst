@@ -132,6 +132,17 @@ export default function HomePage() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [mobileMenuOpen]);
+
   return (
     <div className="min-h-screen bg-[#050505] text-[#e5e4e2] selection:bg-emerald-500 selection:text-black overflow-x-hidden relative">
       {/* Background grid with dots and animations */}
@@ -223,16 +234,26 @@ export default function HomePage() {
         </div>
       </motion.header>
 
-      {/* Mobile Navigation Sheet Dropdown */}
+      {/* Mobile Navigation Sheet Dropdown & Blurred Backdrop */}
       <AnimatePresence>
         {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -15, scale: 0.96 }}
-            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed top-18 left-1/2 -translate-x-1/2 z-45 w-[94%] max-w-5xl liquid-glass-card rounded-2xl p-4 md:hidden border border-white/15 shadow-2xl space-y-3"
-          >
+          <>
+            {/* Backdrop Blur Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+              className="fixed inset-0 z-40 bg-black/70 backdrop-blur-md transition-all"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -15, scale: 0.96 }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              className="fixed top-18 left-1/2 -translate-x-1/2 z-50 w-[94%] max-w-5xl liquid-glass-card rounded-2xl p-4 md:hidden border border-white/15 shadow-2xl space-y-3"
+            >
             <div className="flex flex-col space-y-2">
               <Link
                 href="/login"
@@ -261,8 +282,9 @@ export default function HomePage() {
               <span className="text-emerald-400 font-semibold">Active</span>
             </div>
           </motion.div>
-        )}
-      </AnimatePresence>
+        </>
+      )}
+    </AnimatePresence>
 
       {/* Main Container */}
       <main className="relative z-10 pt-24 sm:pt-36 pb-20 px-4 sm:px-6 max-w-5xl mx-auto space-y-16 sm:space-y-28">

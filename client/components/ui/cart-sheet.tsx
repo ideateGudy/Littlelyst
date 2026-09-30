@@ -63,6 +63,18 @@ export function CartSheet() {
     }
   }, [currentUser]);
 
+  // Lock body scroll when cart sheet is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isOpen]);
+
   const formatNaira = (minor: number) => {
     return `₦${(minor / 100).toLocaleString(undefined, {
       minimumFractionDigits: 2,
@@ -235,7 +247,7 @@ export function CartSheet() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsOpen(false)}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/80 backdrop-blur-md transition-all"
             />
 
             <motion.div
