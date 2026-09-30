@@ -70,7 +70,10 @@ export async function uploadToCloudinary(
     };
   }
 
-  // Step 2: Upload directly to Cloudinary with signature
+  // Step 2: Compress image before upload (reduces bandwidth for Nigerian mobile users)
+  const fileToUpload = await compressImage(file);
+
+  // Step 3: Upload directly to Cloudinary with signature
   return new Promise((resolve, reject) => {
     // If working in purely offline / mock dev mode without valid Cloudinary credentials:
     if (signatureData.signature === "mock_signature_for_dev") {
@@ -81,7 +84,7 @@ export async function uploadToCloudinary(
         if (progress >= 100) {
           clearInterval(interval);
           // Return a mock hosted image or local object URL representation
-          const localUrl = URL.createObjectURL(file);
+          const localUrl = URL.createObjectURL(fileToUpload);
           resolve(localUrl);
         }
       }, 200);
@@ -91,7 +94,8 @@ export async function uploadToCloudinary(
     const xhr = new XMLHttpRequest();
     const formData = new FormData();
 
-    formData.append("file", file);
+    formData.append("file", fileToUpload);
+
     formData.append("api_key", signatureData.apiKey);
     formData.append("timestamp", String(signatureData.timestamp));
     formData.append("signature", signatureData.signature);
