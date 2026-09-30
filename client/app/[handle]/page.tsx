@@ -34,38 +34,48 @@ export async function generateMetadata(
   }
 
   const sellerName = catalogue.seller.name;
-  const bio = catalogue.seller.bio || `Browse products and buy directly from ${sellerName} on Littlelyst. No account needed.`;
+  const storeHandle = catalogue.seller.handle;
+  const bio =
+    catalogue.seller.bio ||
+    `Browse products and buy directly from ${sellerName} (@${storeHandle}) on Littlelyst. Fast delivery & instant checkout.`;
   const productCount = catalogue.products.length;
-  const title = `${sellerName} (@${handle}) • Personal Catalogue (${productCount} items)`;
-  const primaryImage =
-    catalogue.products[0]?.images?.[0] ||
+  const title = `${sellerName} (@${storeHandle}) • Storefront (${productCount} item${productCount === 1 ? "" : "s"})`;
+  
+  // Best representative preview image: seller's avatar or first product image, fallback to placeholder
+  const storeImage =
     catalogue.seller.avatarUrl ||
+    catalogue.products[0]?.images?.[0] ||
     "https://images.unsplash.com/photo-1556742049-0a67e55722c0?auto=format&fit=crop&w=1200&h=630&q=85";
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://littlelyst.com";
 
   return {
     title,
     description: bio,
     keywords: [
+      `${sellerName}`,
+      `${storeHandle}`,
       `${sellerName} catalogue`,
       `${sellerName} store`,
-      `${handle} shop`,
+      `${storeHandle} shop`,
       "buy on whatsapp",
       "instant online payment",
       "nigeria boutique seller",
+      "littlelyst seller",
     ],
     openGraph: {
       title,
       description: bio,
-      url: `https://littlelyst.com/${handle}`,
+      url: `${appUrl}/${storeHandle}`,
       siteName: "Littlelyst",
       locale: "en_NG",
       type: "profile",
       images: [
         {
-          url: primaryImage,
+          url: storeImage,
           width: 1200,
           height: 630,
-          alt: `${sellerName}'s Littlelyst Catalogue`,
+          alt: `${sellerName}'s Littlelyst Storefront`,
         },
       ],
     },
@@ -73,7 +83,7 @@ export async function generateMetadata(
       card: "summary_large_image",
       title,
       description: bio,
-      images: [primaryImage],
+      images: [storeImage],
     },
   };
 }
