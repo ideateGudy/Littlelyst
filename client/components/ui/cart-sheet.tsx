@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useCart } from "@/lib/cart-context";
+import { useCartStore } from "@/lib/cart-store";
+import { useAuthStore } from "@/lib/auth-store";
 import { triggerPaystackCheckout } from "@/lib/paystack";
 import { apiClient } from "@/lib/api-client";
-import { useAuth } from "@/lib/auth-context";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ShoppingBag,
@@ -22,18 +22,16 @@ import { toast } from '@/components/ui/toast';
 import AddressSelector from '@/components/ui/address-selector';
 
 export function CartSheet() {
-  const {
-    items,
-    isOpen,
-    setIsOpen,
-    updateQuantity,
-    removeItem,
-    clearCart,
-    totalCount,
-    totalAmountMinor,
-  } = useCart();
+  const items = useCartStore((s) => s.items);
+  const isOpen = useCartStore((s) => s.isOpen);
+  const setIsOpen = useCartStore((s) => s.setIsOpen);
+  const updateQuantity = useCartStore((s) => s.updateQuantity);
+  const removeItem = useCartStore((s) => s.removeItem);
+  const clearCart = useCartStore((s) => s.clearCart);
+  const totalCount = useCartStore((s) => s.getTotalCount());
+  const totalAmountMinor = useCartStore((s) => s.getTotalAmountMinor());
 
-  const { user: currentUser } = useAuth();
+  const currentUser = useAuthStore((s) => s.user);
 
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [buyerName, setBuyerName] = useState("");

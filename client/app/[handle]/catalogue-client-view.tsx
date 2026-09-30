@@ -11,7 +11,7 @@ import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { apiClient } from "@/lib/api-client";
 import { triggerPaystackCheckout } from "@/lib/paystack";
-import { useAuth } from "@/lib/auth-context";
+import { useAuthStore } from "@/lib/auth-store";
 import {
   ShoppingBag,
   Sparkles,
@@ -91,7 +91,7 @@ export function CatalogueClientView({
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [storyPaused, setStoryPaused] = useState(false);
 
-  const { user: currentUser } = useAuth();
+  const { user: currentUser } = useAuthStore();
 
   // Checkout modal state
   const [activeProduct, setActiveProduct] = useState<any | null>(null);

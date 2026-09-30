@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api-client";
-import { useAuth } from "@/lib/auth-context";
+import { useAuthStore } from "@/lib/auth-store";
 import { toast } from "@/components/ui/toast";
 import { MapPin, Plus, Check } from "lucide-react";
 
@@ -68,7 +68,7 @@ export default function AddressSelector({
   onChange,
   placeholder = "12 Admiralty Way, Lekki Phase 1, Lagos",
 }: Props) {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddrId, setSelectedAddrId] = useState<string>("");
   const [showNew, setShowNew] = useState(false);

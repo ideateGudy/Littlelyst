@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { useCart } from "@/lib/cart-context";
+import { useCartStore } from "@/lib/cart-store";
 import {
   ShoppingBag,
   X,
@@ -55,7 +55,7 @@ export function AddToCartModal({
   isOpen,
   onClose,
 }: AddToCartModalProps) {
-  const { addItem } = useCart();
+  const addItem = useCartStore((s) => s.addItem);
 
   const [selectedVariant, setSelectedVariant] = useState<any | null>(null);
   const [quantity, setQuantity] = useState(1);

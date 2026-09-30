@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
-import { useAuth } from "@/lib/auth-context";
+import { useAuthStore } from "@/lib/auth-store";
 import { Lock, Mail, ArrowRight } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -13,7 +13,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login } = useAuthStore();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

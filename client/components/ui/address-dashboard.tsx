@@ -20,12 +20,12 @@ type Address = {
   country: string;
 };
 
-import { useAuth } from '@/lib/auth-context';
+import { useAuthStore } from '@/lib/auth-store';
 
 /** Dashboard UI to view and add addresses */
 
 export default function AddressDashboard() {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);

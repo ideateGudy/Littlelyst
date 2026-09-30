@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
+import { useAuthStore } from "@/lib/auth-store";
 import { apiClient } from "@/lib/api-client";
 import { toast } from "@/components/ui/toast";
 import { motion } from "motion/react";
@@ -51,7 +51,7 @@ interface OrderItem {
 
 export default function OrdersPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

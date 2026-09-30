@@ -113,8 +113,4 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   },
 }));
 
-/**
- * Direct Zustand hook — replaces useContext(AuthContext).
- * Use this everywhere instead of useAuth().
- */
-export const useAuth = () => useAuthStore();
+

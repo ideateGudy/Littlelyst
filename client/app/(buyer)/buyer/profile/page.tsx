@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
+import { useAuthStore } from "@/lib/auth-store";
 import { apiClient } from "@/lib/api-client";
 import {
   User,
@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 export default function BuyerProfilePage() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser } = useAuthStore();
   const router = useRouter();
 
   // Profile Form State

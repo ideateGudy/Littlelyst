@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
-import { useAuth } from "@/lib/auth-context";
+import { useAuthStore } from "@/lib/auth-store";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ShoppingBag,
@@ -50,7 +50,7 @@ interface BuyerOrder {
 }
 
 export default function BuyerDashboardPage() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser } = useAuthStore();
   const router = useRouter();
   const [orders, setOrders] = useState<BuyerOrder[]>([]);
   const [loading, setLoading] = useState(true);

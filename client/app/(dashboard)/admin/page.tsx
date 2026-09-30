@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useAuth } from "@/lib/auth-context";
+import { useAuthStore } from "@/lib/auth-store";
 import { apiClient } from "@/lib/api-client";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -59,7 +59,7 @@ interface FinancialOverview {
 }
 
 export default function AdminPage() {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [financials, setFinancials] = useState<FinancialOverview | null>(null);
   const [loading, setLoading] = useState(true);

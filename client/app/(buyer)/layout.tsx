@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
+import { useAuthStore } from "@/lib/auth-store";
 import { apiClient } from "@/lib/api-client";
 import {
   ShoppingBag,
@@ -23,7 +23,7 @@ export default function BuyerDashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading, logout, updateUser } = useAuth();
+  const { user, loading, logout, updateUser } = useAuthStore();
   const router = useRouter();
   const [switchingRole, setSwitchingRole] = useState(false);
 

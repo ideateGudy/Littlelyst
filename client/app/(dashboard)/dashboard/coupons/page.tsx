@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
+import { useAuthStore } from "@/lib/auth-store";
 import { apiClient } from "@/lib/api-client";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -41,7 +41,7 @@ interface ProductItem {
 
 export default function CouponsDashboard() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, loading } = useAuthStore();
   
   const [coupons, setCoupons] = useState<CouponItem[]>([]);
   const [products, setProducts] = useState<ProductItem[]>([]);

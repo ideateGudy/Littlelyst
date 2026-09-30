@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
+import { useAuthStore } from "@/lib/auth-store";
 import { apiClient } from "@/lib/api-client";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -67,7 +67,7 @@ interface AnalyticsData {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser } = useAuthStore();
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);

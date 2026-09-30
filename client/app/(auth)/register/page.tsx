@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { apiClient } from "@/lib/api-client";
-import { useAuth } from "@/lib/auth-context";
+import { useAuthStore } from "@/lib/auth-store";
 import {
   Smartphone,
   CheckCircle2,
@@ -30,7 +30,7 @@ import {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login } = useAuthStore();
 
   // Multi-step state: 1 = Phone, 2 = Verify Code, 3 = Brand & Catalogue Link, 4 = Account Details
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);

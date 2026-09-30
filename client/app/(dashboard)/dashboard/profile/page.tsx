@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useAuth } from "@/lib/auth-context";
+import { useAuthStore } from "@/lib/auth-store";
 import { apiClient } from "@/lib/api-client";
 import { toast } from "@/components/ui/toast";
 import { uploadToCloudinary } from "@/lib/cloudinary-upload";
@@ -135,7 +135,7 @@ function InputField({
    Profile Page
 ═══════════════════════════════════════════════════════════════════ */
 export default function ProfilePage() {
-  const { user, updateUser, loading } = useAuth();
+  const { user, updateUser, loading } = useAuthStore();
 
   /* ── Profile state ── */
   const [name, setName] = useState("");
