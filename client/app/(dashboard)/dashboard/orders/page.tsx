@@ -5,13 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { apiClient } from "@/lib/api-client";
-import { motion, AnimatePresence } from "motion/react";
+import { toast } from "@/components/ui/toast";
+import { motion } from "motion/react";
 import {
   ShoppingBag,
   RefreshCw,
   Search,
-  ExternalLink,
-  ArrowUpRight,
+  ArrowLeft,
   Clock,
   CheckCircle2,
   AlertCircle,
@@ -20,12 +20,10 @@ import {
   User,
   Mail,
   Phone,
-  ArrowLeft,
-  Calendar,
-  Filter,
   Truck,
   PackageCheck,
-  ChevronDown,
+  XCircle,
+  Bell,
 } from "lucide-react";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 
@@ -35,11 +33,13 @@ interface OrderItem {
   buyerEmail: string;
   buyerPhone: string;
   productTitle: string;
+  productType?: "PHYSICAL" | "DIGITAL";
   quantity: number;
   totalMinor: string;
   sellerNetMinor: string;
   platformFeeMinor: string;
   status: "PENDING" | "PAID" | "FULFILLED" | "CANCELLED" | "FAILED";
+  paymentMethod?: "PAYSTACK" | "PAY_ON_DELIVERY" | string;
   trafficSource: string;
   paystackReference: string;
   paidAt?: string | null;
@@ -56,6 +56,7 @@ export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [remindingId, setRemindingId] = useState<string | null>(null);
 
   const fetchOrders = async () => {
     try {
@@ -86,25 +87,53 @@ export default function OrdersPage() {
   ) => {
     try {
       setUpdatingId(orderId);
-      const res = await apiClient<{ status: string; data: OrderItem }>(`/api/orders/${orderId}/status`, {
-        method: "POST",
-        body: JSON.stringify({ status: newStatus }),
-      });
+      const res = await apiClient<{ status: string; data: OrderItem }>(
+        `/api/orders/${orderId}/status`,
+        {
+          method: "POST",
+          body: JSON.stringify({ status: newStatus }),
+        },
+      );
       if (res.data) {
         setOrders((prev) =>
           prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)),
         );
+        toast({
+          title: `Order marked as ${newStatus.toLowerCase()}`,
+          variant: "default",
+        });
       }
     } catch (err: any) {
-      alert(err.message || "Failed to update order status");
+      toast({
+        title: err.message || "Failed to update order status",
+        variant: "destructive",
+      });
     } finally {
       setUpdatingId(null);
     }
   };
 
+  const handleSendReminder = async (orderId: string) => {
+    try {
+      setRemindingId(orderId);
+      await apiClient(`/api/orders/${orderId}/remind`, { method: "POST" });
+      toast({ title: "Payment reminder sent to buyer", variant: "default" });
+    } catch (err: any) {
+      toast({
+        title: err.message || "Failed to send reminder",
+        variant: "destructive",
+      });
+    } finally {
+      setRemindingId(null);
+    }
+  };
+
   const formatNaira = (minor: string | number) => {
     const num = Number(minor) / 100;
-    return `₦${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `₦${num.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
   };
 
   const copyReference = (ref: string) => {
@@ -120,34 +149,31 @@ export default function OrdersPage() {
       o.productTitle.toLowerCase().includes(q) ||
       o.buyerName.toLowerCase().includes(q) ||
       o.buyerEmail.toLowerCase().includes(q) ||
-      o.buyerPhone.toLowerCase().includes(q) ||
+      (o.buyerPhone || "").toLowerCase().includes(q) ||
       o.paystackReference.toLowerCase().includes(q);
 
     const matchesStatus =
-      statusFilter === "ALL"
-        ? true
-        : statusFilter === "PAID"
-        ? o.status === "PAID"
-        : statusFilter === "FULFILLED"
-        ? o.status === "FULFILLED"
-        : statusFilter === "PENDING"
-        ? o.status === "PENDING"
-        : statusFilter === "CANCELLED"
-        ? o.status === "CANCELLED"
-        : true;
+      statusFilter === "ALL" ? true : o.status === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
 
+  // Use Number not BigInt to avoid serialization errors
   const totalPaidRevenue = orders
     .filter((o) => o.status === "PAID" || o.status === "FULFILLED")
-    .reduce((acc, curr) => acc + BigInt(curr.sellerNetMinor || curr.totalMinor), 0n);
+    .reduce((acc, curr) => acc + Number(curr.sellerNetMinor || curr.totalMinor), 0);
 
-  const totalDeliveredOrders = orders.filter((o) => o.status === "FULFILLED").length;
-  const totalPaidOrders = orders.filter((o) => o.status === "PAID" || o.status === "FULFILLED").length;
+  const totalPaidOrders = orders.filter(
+    (o) => o.status === "PAID" || o.status === "FULFILLED",
+  ).length;
 
   if (loading) {
-    return <LoadingScreen message="Loading store orders..." subMessage="Fetching buyer payments and fulfillment tracking" />;
+    return (
+      <LoadingScreen
+        message="Loading store orders..."
+        subMessage="Fetching buyer payments and fulfillment tracking"
+      />
+    );
   }
 
   return (
@@ -155,53 +181,50 @@ export default function OrdersPage() {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/dashboard"
-              className="text-xs text-white/50 hover:text-white flex items-center gap-1 font-semibold transition-colors"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Dashboard</span>
-            </Link>
-          </div>
+          <Link
+            href="/dashboard"
+            className="text-xs text-white/50 hover:text-white flex items-center gap-1 font-semibold transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back to Dashboard</span>
+          </Link>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-1">
-            Store Orders & Receipts
+            Store Orders &amp; Receipts
           </h1>
           <p className="text-xs sm:text-sm text-white/50">
-            Real-time sales, buyer contacts, and Paystack settlement statuses for your store.
+            Real-time sales, buyer contacts, and Paystack settlement statuses.
           </p>
         </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={fetchOrders}
-            disabled={refreshing}
-            className="liquid-glass-button p-2.5 rounded-xl text-white/70 hover:text-white cursor-pointer"
-            title="Refresh Orders"
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
-          </button>
-        </div>
+        <button
+          onClick={fetchOrders}
+          disabled={refreshing}
+          className="liquid-glass-button p-2.5 rounded-xl text-white/70 hover:text-white cursor-pointer self-start sm:self-auto"
+          title="Refresh Orders"
+        >
+          <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+        </button>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="liquid-glass-card rounded-2xl p-4 sm:p-5 space-y-1.5 border border-white/10">
           <div className="flex items-center justify-between text-white/50 text-xs">
-            <span>Total Sales Volume</span>
+            <span>Net Revenue</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           </div>
-          <p className="text-xl sm:text-2xl font-black text-white">{formatNaira(totalPaidRevenue.toString())}</p>
+          <p className="text-xl sm:text-2xl font-black text-white">
+            {formatNaira(totalPaidRevenue)}
+          </p>
           <span className="text-[10px] text-emerald-400 font-mono">Settled to bank</span>
         </div>
 
         <div className="liquid-glass-card rounded-2xl p-4 sm:p-5 space-y-1.5 border border-white/10">
           <div className="flex items-center justify-between text-white/50 text-xs">
-            <span>Successful Orders</span>
+            <span>Paid Orders</span>
             <ShoppingBag className="w-4 h-4 text-teal-400" />
           </div>
           <p className="text-xl sm:text-2xl font-black text-white">{totalPaidOrders}</p>
-          <span className="text-[10px] text-white/40 font-mono">Paid orders</span>
+          <span className="text-[10px] text-white/40 font-mono">Paid + Delivered</span>
         </div>
 
         <div className="liquid-glass-card rounded-2xl p-4 sm:p-5 space-y-1.5 border border-white/10">
@@ -219,7 +242,9 @@ export default function OrdersPage() {
             <span className="text-emerald-400 font-bold text-xs">%</span>
           </div>
           <p className="text-xl sm:text-2xl font-black text-white">
-            {orders.length > 0 ? `${Math.round((totalPaidOrders / orders.length) * 100)}%` : "0%"}
+            {orders.length > 0
+              ? `${Math.round((totalPaidOrders / orders.length) * 100)}%`
+              : "0%"}
           </p>
           <span className="text-[10px] text-white/40 font-mono">Initiation to payment</span>
         </div>
@@ -231,7 +256,7 @@ export default function OrdersPage() {
           <Search className="w-4 h-4 text-white/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search by buyer name, email, phone, or product..."
+            placeholder="Search by buyer, product, email, or reference..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-black/60 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-white/30 focus:border-emerald-400 focus:outline-none"
@@ -240,9 +265,9 @@ export default function OrdersPage() {
 
         <div className="flex items-center bg-black/60 border border-white/10 p-1 rounded-xl gap-1 overflow-x-auto scrollbar-none">
           {[
-            { id: "ALL", label: "All Orders" },
+            { id: "ALL", label: "All" },
             { id: "PAID", label: "Paid" },
-            { id: "FULFILLED", label: "Delivered / Fulfilled" },
+            { id: "FULFILLED", label: "Delivered" },
             { id: "PENDING", label: "Pending" },
             { id: "CANCELLED", label: "Cancelled" },
           ].map((tab) => (
@@ -261,13 +286,8 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      {/* Orders List / Table */}
-      {loading ? (
-        <div className="text-center py-20 space-y-3">
-          <div className="w-8 h-8 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin mx-auto" />
-          <p className="text-xs text-white/40 font-mono">Loading orders...</p>
-        </div>
-      ) : filteredOrders.length === 0 ? (
+      {/* Orders List */}
+      {filteredOrders.length === 0 ? (
         <div className="liquid-glass-card rounded-2xl p-12 text-center space-y-3 border border-white/10">
           <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/30 mx-auto">
             <ShoppingBag className="w-6 h-6" />
@@ -276,7 +296,7 @@ export default function OrdersPage() {
           <p className="text-xs text-white/40 max-w-sm mx-auto">
             {searchQuery
               ? "No orders match your search query."
-              : "When customers buy products from your store link, their orders and payment details appear here."}
+              : "When customers buy products from your store link, their orders appear here."}
           </p>
         </div>
       ) : (
@@ -286,6 +306,8 @@ export default function OrdersPage() {
             const isPaid = order.status === "PAID";
             const isPending = order.status === "PENDING";
             const isCancelled = order.status === "CANCELLED";
+            const isPhysical = !order.productType || order.productType === "PHYSICAL";
+            const isUpdating = updatingId === order.id;
 
             return (
               <motion.div
@@ -294,10 +316,11 @@ export default function OrdersPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="liquid-glass-card rounded-2xl p-4 sm:p-5 border border-white/10 hover:border-white/20 transition-all space-y-3.5"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
-                  <div className="flex items-center gap-3">
+                {/* Header row */}
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-white/10 pb-3">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
                     <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
                         isFulfilled
                           ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
                           : isPaid
@@ -312,15 +335,17 @@ export default function OrdersPage() {
                       ) : isPaid ? (
                         <CheckCircle2 className="w-5 h-5" />
                       ) : isCancelled ? (
-                        <AlertCircle className="w-5 h-5" />
+                        <XCircle className="w-5 h-5" />
                       ) : (
                         <Clock className="w-5 h-5" />
                       )}
                     </div>
 
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h4 className="text-sm font-bold text-white">{order.productTitle}</h4>
+                        <h4 className="text-sm font-bold text-white">
+                          {order.productTitle}
+                        </h4>
                         <span className="text-xs text-white/40">× {order.quantity}</span>
                         <span
                           className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${
@@ -335,11 +360,14 @@ export default function OrdersPage() {
                         >
                           {isFulfilled ? "DELIVERED" : order.status}
                         </span>
+                        {order.productType && (
+                          <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border border-white/10 text-white/30">
+                            {order.productType}
+                          </span>
+                        )}
                       </div>
-                      <p className="text-[11px] text-white/40 mt-0.5 flex items-center gap-2">
-                        <span className="flex items-center gap-1 font-mono">
-                          Ref: {order.paystackReference}
-                        </span>
+                      <p className="text-[11px] text-white/40 mt-0.5 flex items-center gap-2 flex-wrap">
+                        <span className="font-mono">Ref: {order.paystackReference}</span>
                         <button
                           onClick={() => copyReference(order.paystackReference)}
                           className="hover:text-emerald-400 transition-colors"
@@ -351,44 +379,45 @@ export default function OrdersPage() {
                             <Copy className="w-3 h-3" />
                           )}
                         </button>
+                        <span className="text-white/20">·</span>
+                        <span>
+                          {new Date(order.createdAt).toLocaleDateString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-4">
-                    <div className="text-left sm:text-right">
-                      <span className="text-base font-black text-emerald-400">
-                        {formatNaira(order.sellerNetMinor || order.totalMinor)}
-                      </span>
-                      <p className="text-[10px] text-white/40">
-                        {new Date(order.createdAt).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    </div>
+                  {/* Amount + Action buttons */}
+                  <div className="flex items-center gap-3 sm:flex-col sm:items-end">
+                    <span className="text-base font-black text-emerald-400">
+                      {formatNaira(order.sellerNetMinor || order.totalMinor)}
+                    </span>
 
-                    {/* Quick Fulfillment Status Dropdown / Action */}
-                    <div className="flex items-center gap-1.5">
-                      {order.status !== "FULFILLED" && (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {/* Mark Delivered — only for PHYSICAL products that are not already fulfilled */}
+                      {isPhysical && !isFulfilled && !isCancelled && (
                         <button
                           onClick={() => handleUpdateStatus(order.id, "FULFILLED")}
-                          disabled={updatingId === order.id}
+                          disabled={isUpdating}
                           className="px-2.5 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
-                          title="Mark as Delivered / Fulfilled"
+                          title="Mark as Delivered"
                         >
                           <Truck className="w-3.5 h-3.5" />
                           <span>Mark Delivered</span>
                         </button>
                       )}
 
-                      {order.status === "PENDING" && (
+                      {/* Mark Paid — only for products where buyer selected pay on delivery */}
+                      {isPending && order.paymentMethod === "PAY_ON_DELIVERY" && (
                         <button
                           onClick={() => handleUpdateStatus(order.id, "PAID")}
-                          disabled={updatingId === order.id}
+                          disabled={isUpdating}
                           className="px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold transition-all cursor-pointer disabled:opacity-50"
                           title="Mark as Paid"
                         >
@@ -396,10 +425,26 @@ export default function OrdersPage() {
                         </button>
                       )}
 
-                      {order.status !== "CANCELLED" && (
+                      {/* Send Reminder — only for PENDING orders */}
+                      {isPending && (
+                        <button
+                          onClick={() => handleSendReminder(order.id)}
+                          disabled={remindingId === order.id}
+                          className="px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+                          title="Send payment reminder email"
+                        >
+                          <Bell className="w-3.5 h-3.5" />
+                          <span>
+                            {remindingId === order.id ? "Sending…" : "Remind"}
+                          </span>
+                        </button>
+                      )}
+
+                      {/* Cancel — only if not already cancelled or fulfilled */}
+                      {!isCancelled && !isFulfilled && (
                         <button
                           onClick={() => handleUpdateStatus(order.id, "CANCELLED")}
-                          disabled={updatingId === order.id}
+                          disabled={isUpdating}
                           className="px-2 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[11px] font-bold transition-all cursor-pointer disabled:opacity-50"
                           title="Cancel Order"
                         >
@@ -411,12 +456,13 @@ export default function OrdersPage() {
                 </div>
 
                 {/* Customer Details Strip */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs text-white/70 pt-0.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-white/70">
                   <div className="flex items-center gap-2 bg-black/40 px-3 py-2 rounded-xl border border-white/5">
                     <User className="w-3.5 h-3.5 text-white/40 shrink-0" />
-                    <span className="truncate font-semibold text-white">{order.buyerName}</span>
+                    <span className="truncate font-semibold text-white">
+                      {order.buyerName}
+                    </span>
                   </div>
-
                   <div className="flex items-center gap-2 bg-black/40 px-3 py-2 rounded-xl border border-white/5">
                     <Mail className="w-3.5 h-3.5 text-white/40 shrink-0" />
                     <a
@@ -426,17 +472,20 @@ export default function OrdersPage() {
                       {order.buyerEmail}
                     </a>
                   </div>
-
                   <div className="flex items-center gap-2 bg-black/40 px-3 py-2 rounded-xl border border-white/5">
                     <Phone className="w-3.5 h-3.5 text-white/40 shrink-0" />
-                    <a
-                      href={`https://wa.me/${order.buyerPhone.replace(/[^0-9]/g, "")}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="truncate hover:text-emerald-400 transition-colors font-mono"
-                    >
-                      {order.buyerPhone}
-                    </a>
+                    {order.buyerPhone ? (
+                      <a
+                        href={`https://wa.me/${order.buyerPhone.replace(/[^0-9]/g, "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="truncate hover:text-emerald-400 transition-colors font-mono"
+                      >
+                        {order.buyerPhone}
+                      </a>
+                    ) : (
+                      <span className="text-white/30 italic">No phone</span>
+                    )}
                   </div>
                 </div>
               </motion.div>

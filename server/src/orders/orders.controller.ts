@@ -82,4 +82,19 @@ export class OrdersController {
       data,
     };
   }
+
+  // Send payment reminder email to buyer
+  @Post(":id/remind")
+  @UseGuards(AccessTokenGuard)
+  async sendReminder(
+    @Param("id") id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    const data = await this.ordersService.sendPaymentReminder(id, user.id);
+    return {
+      status: "success",
+      message: "Payment reminder sent to buyer",
+      data,
+    };
+  }
 }

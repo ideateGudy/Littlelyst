@@ -4,7 +4,7 @@ import {
   NotFoundException,
   Inject,
 } from "@nestjs/common";
-import { eq, and, or, desc, sql } from "drizzle-orm";
+import { eq, and, or, desc } from "drizzle-orm";
 import crypto from "crypto";
 import { DRIZZLE } from "../db/index.js";
 import type { DrizzleDb } from "../db/index.js";
@@ -19,6 +19,7 @@ import {
   NewOrder,
 } from "../db/schema.js";
 import { PromotionsService } from "../promotions/promotions.service.js";
+import { EmailService } from "../email/email.service.js";
 
 export interface GuestCheckoutDto {
   sellerId: string;
@@ -32,6 +33,19 @@ export interface GuestCheckoutDto {
   buyerAddress?: string;
   couponCode?: string;
   trafficSource?: string;
+  paymentMethod?: "PAYSTACK" | "PAY_ON_DELIVERY";
+}
+
+/** Helper: convert all BigInt fields in an order row to strings */
+function serializeOrder(o: any) {
+  return {
+    ...o,
+    totalMinor: o.totalMinor?.toString() ?? "0",
+    subtotalMinor: o.subtotalMinor?.toString() ?? "0",
+    discountMinor: o.discountMinor?.toString() ?? "0",
+    sellerNetMinor: o.sellerNetMinor?.toString() ?? "0",
+    platformFeeMinor: o.platformFeeMinor?.toString() ?? "0",
+  };
 }
 
 @Injectable()
@@ -39,6 +53,7 @@ export class OrdersService {
   constructor(
     @Inject(DRIZZLE) private readonly db: DrizzleDb,
     private readonly promotionsService: PromotionsService,
+    private readonly emailService: EmailService,
   ) {}
 
   /**
@@ -186,6 +201,9 @@ export class OrdersService {
 
     const paystackReference = `lyst_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
 
+    // For pay-on-delivery: set status to PENDING, no paystack needed
+    const initialStatus = dto.paymentMethod === "PAY_ON_DELIVERY" ? "PENDING" : "PENDING";
+
     const newOrder: NewOrder = {
       sellerId: dto.sellerId,
       productId: dto.productId,
@@ -202,7 +220,8 @@ export class OrdersService {
       platformFeeMinor,
       sellerNetMinor,
       couponId,
-      status: "PENDING",
+      status: initialStatus,
+      paymentMethod: dto.paymentMethod ?? "PAYSTACK",
       paystackReference,
       trafficSource: dto.trafficSource || "direct",
     };
@@ -213,6 +232,7 @@ export class OrdersService {
     return {
       orderId: order.id,
       paystackReference,
+      paymentMethod: dto.paymentMethod ?? "PAYSTACK",
       totalMinor: totalMinor.toString(),
       subtotalMinor: subtotalMinor.toString(),
       discountMinor: discountMinor.toString(),
@@ -272,11 +292,13 @@ export class OrdersService {
         buyerEmail: orders.buyerEmail,
         buyerPhone: orders.buyerPhone,
         productTitle: products.title,
+        productType: products.productType,
         quantity: orders.quantity,
         totalMinor: orders.totalMinor,
         sellerNetMinor: orders.sellerNetMinor,
         platformFeeMinor: orders.platformFeeMinor,
         status: orders.status,
+        paymentMethod: orders.paymentMethod,
         trafficSource: orders.trafficSource,
         paystackReference: orders.paystackReference,
         paidAt: orders.paidAt,
@@ -287,12 +309,7 @@ export class OrdersService {
       .where(eq(orders.sellerId, sellerId))
       .orderBy(desc(orders.createdAt));
 
-    return list.map((o) => ({
-      ...o,
-      totalMinor: o.totalMinor.toString(),
-      sellerNetMinor: o.sellerNetMinor.toString(),
-      platformFeeMinor: o.platformFeeMinor.toString(),
-    }));
+    return list.map(serializeOrder);
   }
 
   async listBuyerOrders(buyerId: string, buyerEmail?: string) {
@@ -317,6 +334,7 @@ export class OrdersService {
         quantity: orders.quantity,
         totalMinor: orders.totalMinor,
         status: orders.status,
+        paymentMethod: orders.paymentMethod,
         paystackReference: orders.paystackReference,
         paidAt: orders.paidAt,
         createdAt: orders.createdAt,
@@ -328,8 +346,7 @@ export class OrdersService {
       .orderBy(desc(orders.createdAt));
 
     return list.map((o) => ({
-      ...o,
-      totalMinor: o.totalMinor.toString(),
+      ...serializeOrder(o),
       digitalFileUrl: o.status === "PAID" ? o.digitalFileUrl : null,
       digitalKeyOrNote: o.status === "PAID" ? o.digitalKeyOrNote : null,
     }));
@@ -362,11 +379,46 @@ export class OrdersService {
       .where(eq(orders.id, orderId))
       .returning();
 
-    return {
-      ...updated[0],
-      totalMinor: updated[0].totalMinor.toString(),
-      sellerNetMinor: updated[0].sellerNetMinor.toString(),
-      platformFeeMinor: updated[0].platformFeeMinor.toString(),
-    };
+    return serializeOrder(updated[0]);
+  }
+
+  async sendPaymentReminder(orderId: string, sellerId: string) {
+    const list = await this.db
+      .select({
+        id: orders.id,
+        buyerName: orders.buyerName,
+        buyerEmail: orders.buyerEmail,
+        paystackReference: orders.paystackReference,
+        status: orders.status,
+        productTitle: products.title,
+        sellerHandle: users.handle,
+        sellerReminderTemplate: users.reminderEmailTemplate,
+      })
+      .from(orders)
+      .innerJoin(products, eq(orders.productId, products.id))
+      .innerJoin(users, eq(orders.sellerId, users.id))
+      .where(and(eq(orders.id, orderId), eq(orders.sellerId, sellerId)))
+      .limit(1);
+
+    const order = list[0];
+    if (!order) {
+      throw new NotFoundException({
+        status: "failed",
+        message: "Order not found or unauthorized",
+      });
+    }
+
+    const baseUrl = process.env.CLIENT_URL || "https://littlelyst.com";
+    const paymentLink = `${baseUrl}/${order.sellerHandle}`;
+
+    await this.emailService.sendOrderReminderEmail(
+      order.buyerEmail,
+      order.buyerName,
+      order.productTitle,
+      paymentLink,
+      order.sellerReminderTemplate,
+    );
+
+    return { sent: true, to: order.buyerEmail };
   }
 }
