@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { motion, AnimatePresence } from "motion/react";
@@ -22,8 +23,10 @@ import {
   MapPin,
   Calendar,
   Sparkles,
+  FileText,
 } from "lucide-react";
 import { LoadingScreen } from "@/components/ui/loading-screen";
+import { ReceiptModal, ReceiptData } from "@/components/ui/receipt-modal";
 
 interface BuyerOrder {
   id: string;
@@ -47,12 +50,37 @@ interface BuyerOrder {
 }
 
 export default function BuyerDashboardPage() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
+  const router = useRouter();
   const [orders, setOrders] = useState<BuyerOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
+  const [selectedReceipt, setSelectedReceipt] = useState<ReceiptData | null>(null);
+  const [switchingRole, setSwitchingRole] = useState(false);
+
+  const handleSwitchRole = async (targetRole: "seller" | "buyer") => {
+    if (switchingRole || user?.role === targetRole) return;
+    try {
+      setSwitchingRole(true);
+      const res = await apiClient<{ status: string; user: any; message?: string }>(
+        "/api/auth/switch-role",
+        {
+          method: "POST",
+          body: JSON.stringify({ targetRole }),
+        },
+      );
+      if (res.user) {
+        updateUser(res.user);
+        router.push(targetRole === "buyer" ? "/buyer" : "/dashboard");
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to switch mode");
+    } finally {
+      setSwitchingRole(false);
+    }
+  };
 
   const fetchPurchases = async () => {
     try {
@@ -141,13 +169,14 @@ export default function BuyerDashboardPage() {
             >
               <span>Auto-Fill Details</span>
             </Link>
-            <Link
-              href="/buyer/profile#mode-toggle"
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 text-black font-extrabold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:opacity-95 transition-all"
+            <button
+              onClick={() => handleSwitchRole("seller")}
+              disabled={switchingRole}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 text-black font-extrabold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:opacity-95 transition-all cursor-pointer disabled:opacity-50"
             >
               <ShoppingBag className="w-3.5 h-3.5" />
               <span>Start Selling</span>
-            </Link>
+            </button>
           </div>
         </div>
 
@@ -320,8 +349,16 @@ export default function BuyerDashboardPage() {
                       </div>
                     </div>
 
-                    {/* Action buttons (Digital Download or Store visit) */}
-                    <div className="flex items-center gap-2">
+                    {/* Action buttons (Receipt, Digital Download, Store visit) */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={() => setSelectedReceipt(order)}
+                        className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Receipt</span>
+                      </button>
+
                       {isPaid && order.digitalFileUrl && (
                         <a
                           href={order.digitalFileUrl}
@@ -357,6 +394,12 @@ export default function BuyerDashboardPage() {
           </div>
         )}
       </section>
+
+      {/* Receipt Modal */}
+      <ReceiptModal
+        receipt={selectedReceipt}
+        onClose={() => setSelectedReceipt(null)}
+      />
     </div>
   );
 }

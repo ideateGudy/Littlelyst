@@ -192,9 +192,9 @@ export default function DashboardPage() {
     }
   };
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (silent = false) => {
     try {
-      setRefreshing(true);
+      if (!silent) setRefreshing(true);
       // 1. Fetch seller's products
       try {
         const prodRes = await apiClient<ProductItem[]>("/api/products");
@@ -215,8 +215,10 @@ export default function DashboardPage() {
         console.warn("Could not fetch analytics:", err);
       }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!silent) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
@@ -226,6 +228,13 @@ export default function DashboardPage() {
       return;
     }
     fetchDashboardData();
+
+    // Real-time live update for top cards every 10 seconds
+    const interval = setInterval(() => {
+      fetchDashboardData(true);
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, [user, router]);
 
   const handleStartEditHandle = () => {
@@ -378,7 +387,7 @@ export default function DashboardPage() {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={fetchDashboardData}
+            onClick={() => fetchDashboardData()}
             disabled={refreshing}
             className="liquid-glass-button p-2.5 rounded-xl text-white/70 hover:text-white cursor-pointer"
             title="Refresh Store"
@@ -537,10 +546,10 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Visual Revenue & Traffic Analytics Charts Section */}
+      {/* Visual Revenue & Performance Analytics Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* 7-Day Performance & Revenue Bar Chart */}
-        <div className="lg:col-span-2 liquid-glass-card rounded-3xl p-5 sm:p-6 border border-white/10 space-y-5">
+        <div className="lg:col-span-3 liquid-glass-card rounded-3xl p-5 sm:p-6 border border-white/10 space-y-5">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -621,58 +630,6 @@ export default function DashboardPage() {
               </div>
             );
           })()}
-        </div>
-
-        {/* Traffic Channels Breakdown */}
-        <div className="liquid-glass-card rounded-3xl p-5 sm:p-6 border border-white/10 space-y-4 flex flex-col justify-between">
-          <div>
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Share2 className="w-4 h-4 text-cyan-400" />
-              Traffic Sources
-            </h3>
-            <p className="text-xs text-white/40">Buyer click channels</p>
-          </div>
-
-          <div className="space-y-3 my-auto">
-            {(() => {
-              const totalClicks = (analytics?.trafficSources || []).reduce((acc, t) => acc + t.count, 0) || 1;
-              const channels = [
-                { id: "whatsapp", label: "WhatsApp Direct", color: "bg-emerald-400", bg: "bg-emerald-500/20" },
-                { id: "instagram", label: "Instagram Bio", color: "bg-pink-400", bg: "bg-pink-500/20" },
-                { id: "gbp", label: "Google Business", color: "bg-cyan-400", bg: "bg-cyan-500/20" },
-                { id: "direct", label: "Direct / QR Code", color: "bg-white/60", bg: "bg-white/10" },
-              ];
-
-              return channels.map((c) => {
-                const item = analytics?.trafficSources.find((s) => s.source === c.id);
-                const count = item ? item.count : 0;
-                const percent = Math.round((count / totalClicks) * 100);
-
-                return (
-                  <div key={c.id} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-white/80 font-medium flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${c.color}`} />
-                        {c.label}
-                      </span>
-                      <span className="text-white/50 font-mono text-[11px]">{count} ({percent}%)</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${c.color}`}
-                        style={{ width: `${percent}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              });
-            })()}
-          </div>
-
-          <div className="pt-2 border-t border-white/10 text-[11px] text-white/40 flex items-center justify-between">
-            <span>Customer Conversion</span>
-            <span className="text-emerald-400 font-bold">{analytics?.conversionRate || "0.0%"}</span>
-          </div>
         </div>
       </div>
 

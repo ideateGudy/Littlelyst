@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { apiClient } from "@/lib/api-client";
 import {
   ShoppingBag,
   PackageCheck,
@@ -22,8 +23,31 @@ export default function BuyerDashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, updateUser } = useAuth();
   const router = useRouter();
+  const [switchingRole, setSwitchingRole] = useState(false);
+
+  const handleSwitchRole = async (targetRole: "seller" | "buyer") => {
+    if (switchingRole || user?.role === targetRole) return;
+    try {
+      setSwitchingRole(true);
+      const res = await apiClient<{ status: string; user: any; message?: string }>(
+        "/api/auth/switch-role",
+        {
+          method: "POST",
+          body: JSON.stringify({ targetRole }),
+        },
+      );
+      if (res.user) {
+        updateUser(res.user);
+        router.push(targetRole === "buyer" ? "/buyer" : "/dashboard");
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to switch mode");
+    } finally {
+      setSwitchingRole(false);
+    }
+  };
 
   useEffect(() => {
     if (!loading) {
@@ -75,14 +99,33 @@ export default function BuyerDashboardLayout({
               Checkout Profile
             </Link>
 
-            {/* Quick Switch to Seller Mode */}
-            <Link
-              href="/buyer/profile#mode-toggle"
-              className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5"
-            >
-              <ShoppingBag className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Seller Mode</span>
-            </Link>
+            {/* Seller / Buyer mode toggle */}
+            <div className="hidden sm:flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-xl p-1">
+              <button
+                onClick={() => handleSwitchRole("seller")}
+                disabled={switchingRole || user.role === "seller"}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  user.role === "seller"
+                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                    : "text-white/40 hover:text-white cursor-pointer"
+                }`}
+                title="Switch to Seller mode"
+              >
+                Seller
+              </button>
+              <button
+                onClick={() => handleSwitchRole("buyer")}
+                disabled={switchingRole || user.role === "buyer"}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  user.role === "buyer"
+                    ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
+                    : "text-white/40 hover:text-white cursor-pointer"
+                }`}
+                title="Switch to Buyer mode"
+              >
+                Buyer
+              </button>
+            </div>
 
             {(user?.role === "super-admin" || user?.role === "admin") && (
               <Link
@@ -133,17 +176,18 @@ export default function BuyerDashboardLayout({
           <span>Profile</span>
         </Link>
 
-        <Link
-          href="/buyer/profile#mode-toggle"
-          className="flex flex-col items-center gap-1 text-[11px] font-semibold text-emerald-400"
+        <button
+          onClick={() => handleSwitchRole("seller")}
+          disabled={switchingRole}
+          className="flex flex-col items-center gap-1 text-[11px] font-semibold text-emerald-400 cursor-pointer"
         >
           <ShoppingBag className="w-4 h-4 text-emerald-400" />
           <span>Sell</span>
-        </Link>
+        </button>
 
         <button
           onClick={() => logout()}
-          className="flex flex-col items-center gap-1 text-[11px] font-semibold text-white/50"
+          className="flex flex-col items-center gap-1 text-[11px] font-semibold text-white/50 cursor-pointer"
         >
           <LogOut className="w-4 h-4" />
           <span>Sign Out</span>
