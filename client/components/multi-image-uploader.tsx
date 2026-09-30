@@ -133,13 +133,25 @@ export function MultiImageUploader({
     }
   };
 
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
   return (
     <div className="space-y-3 w-full">
+      {/* File input for photo gallery selection */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
         multiple
+        className="hidden"
+        onChange={(e) => handleFiles(e.target.files)}
+      />
+      {/* File input for direct camera capture on mobile */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
         className="hidden"
         onChange={(e) => handleFiles(e.target.files)}
       />
@@ -288,10 +300,23 @@ export function MultiImageUploader({
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 mt-1">
-                <span className="liquid-glass-button text-xs font-medium px-4 py-2 rounded-full text-white/90 flex items-center gap-1.5">
-                  <Camera className="w-3.5 h-3.5 text-emerald-400" /> Choose / Snap Photos
-                </span>
+              <div className="flex items-center gap-3 mt-1" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="liquid-glass-button text-xs font-semibold px-4 py-2 rounded-full text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5 cursor-pointer shadow-lg hover:scale-105 transition-all"
+                >
+                  <Camera className="w-4 h-4 text-emerald-400" />
+                  <span>Snap Photo</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="liquid-glass-button text-xs font-semibold px-4 py-2 rounded-full text-white/90 hover:text-white flex items-center gap-1.5 cursor-pointer shadow-lg hover:scale-105 transition-all"
+                >
+                  <ImageIcon className="w-4 h-4 text-cyan-400" />
+                  <span>Photo Gallery</span>
+                </button>
               </div>
             </div>
           )}
