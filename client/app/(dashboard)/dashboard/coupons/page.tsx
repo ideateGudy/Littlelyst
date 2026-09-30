@@ -9,14 +9,13 @@ import {
   Tag,
   Plus,
   ArrowLeft,
-  Percent,
-  Banknote,
   Search,
-  AlertCircle,
   CheckCircle2,
   Package,
-  Calendar,
   X,
+  Edit2,
+  Trash2,
+  Power,
 } from "lucide-react";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 import toast from "react-hot-toast";
@@ -49,12 +48,13 @@ export default function CouponsDashboard() {
   const [isFetchingData, setIsFetchingData] = useState(true);
   
   const [showModal, setShowModal] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState<CouponItem | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState("");
 
   const [formData, setFormData] = useState({
     code: "",
-    discountType: "PERCENTAGE" as const,
+    discountType: "PERCENTAGE" as "PERCENTAGE" | "FIXED_AMOUNT" | "OVERRIDE_PRICE",
     discountValue: "",
     maxRedemptions: "",
     productId: "all",
@@ -66,29 +66,54 @@ export default function CouponsDashboard() {
     }
   }, [user, loading, router]);
 
+  const fetchCouponsAndProducts = async () => {
+    if (!user) return;
+    try {
+      setIsFetchingData(true);
+      const [couponsRes, productsRes] = await Promise.all([
+        apiClient<CouponItem[]>("/api/promotions/coupons"),
+        apiClient<ProductItem[]>("/api/products"),
+      ]);
+      
+      if (couponsRes.data) setCoupons(couponsRes.data);
+      if (productsRes.data) setProducts(productsRes.data);
+    } catch (err) {
+      console.error("Failed to load data", err);
+      toast.error("Failed to load coupons");
+    } finally {
+      setIsFetchingData(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchCouponsAndProducts = async () => {
-      if (!user) return;
-      try {
-        setIsFetchingData(true);
-        const [couponsRes, productsRes] = await Promise.all([
-          apiClient<CouponItem[]>("/api/promotions/coupons"),
-          apiClient<ProductItem[]>("/api/products"),
-        ]);
-        
-        if (couponsRes.data) setCoupons(couponsRes.data);
-        if (productsRes.data) setProducts(productsRes.data);
-      } catch (err) {
-        console.error("Failed to load data", err);
-        toast.error("Failed to load coupons");
-      } finally {
-        setIsFetchingData(false);
-      }
-    };
     fetchCouponsAndProducts();
   }, [user]);
 
-  const handleCreateCoupon = async (e: React.FormEvent) => {
+  const openCreateModal = () => {
+    setEditingCoupon(null);
+    setFormData({
+      code: "",
+      discountType: "PERCENTAGE",
+      discountValue: "",
+      maxRedemptions: "",
+      productId: "all",
+    });
+    setShowModal(true);
+  };
+
+  const openEditModal = (coupon: CouponItem) => {
+    setEditingCoupon(coupon);
+    setFormData({
+      code: coupon.code,
+      discountType: coupon.discountType,
+      discountValue: coupon.discountValue,
+      maxRedemptions: coupon.maxRedemptions.toString(),
+      productId: coupon.productId || "all",
+    });
+    setShowModal(true);
+  };
+
+  const handleSaveCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.code || !formData.discountValue || !formData.maxRedemptions) return;
     
@@ -103,29 +128,62 @@ export default function CouponsDashboard() {
         productId: formData.productId === "all" ? undefined : formData.productId,
       };
 
-      const res = await apiClient<CouponItem>("/api/promotions/coupons", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-
-      if (res.data) {
-        setCoupons([res.data, ...coupons]);
-        setShowModal(false);
-        setFormData({
-          code: "",
-          discountType: "PERCENTAGE",
-          discountValue: "",
-          maxRedemptions: "",
-          productId: "all",
+      if (editingCoupon) {
+        const res = await apiClient<CouponItem>(`/api/promotions/coupons/${editingCoupon.id}`, {
+          method: "PUT",
+          body: JSON.stringify(payload),
         });
-        toast.success("Coupon created successfully!");
+
+        if (res.data) {
+          setCoupons(coupons.map(c => c.id === editingCoupon.id ? res.data! : c));
+          setShowModal(false);
+          toast.success("Coupon updated successfully!");
+        } else {
+          toast.error(res.message || "Failed to update coupon");
+        }
       } else {
-        toast.error(res.message || "Failed to create coupon");
+        const res = await apiClient<CouponItem>("/api/promotions/coupons", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+
+        if (res.data) {
+          setCoupons([res.data, ...coupons]);
+          setShowModal(false);
+          toast.success("Coupon created successfully!");
+        } else {
+          toast.error(res.message || "Failed to create coupon");
+        }
       }
     } catch (err: any) {
       toast.error(err.message || "Something went wrong");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleToggleCoupon = async (coupon: CouponItem) => {
+    try {
+      const res = await apiClient<CouponItem>(`/api/promotions/coupons/${coupon.id}/toggle`, {
+        method: "PUT",
+      });
+      if (res.data) {
+        setCoupons(coupons.map(c => c.id === coupon.id ? res.data! : c));
+        toast.success(`Coupon ${res.data.isActive ? "activated" : "deactivated"}`);
+      }
+    } catch (err: any) {
+      toast.error("Failed to toggle coupon state");
+    }
+  };
+
+  const handleDeleteCoupon = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this coupon?")) return;
+    try {
+      await apiClient(`/api/promotions/coupons/${id}`, { method: "DELETE" });
+      setCoupons(coupons.filter(c => c.id !== id));
+      toast.success("Coupon deleted");
+    } catch (err: any) {
+      toast.error("Failed to delete coupon");
     }
   };
 
@@ -153,8 +211,8 @@ export default function CouponsDashboard() {
             </h1>
           </div>
           <button
-            onClick={() => setShowModal(true)}
-            className="px-4 py-2 bg-white text-black text-sm font-medium rounded-full flex items-center gap-2 hover:bg-white/90 transition-all"
+            onClick={openCreateModal}
+            className="px-4 py-2 bg-white text-black text-sm font-medium rounded-full flex items-center gap-2 hover:bg-white/90 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             New Coupon
@@ -185,8 +243,8 @@ export default function CouponsDashboard() {
             </p>
             {!search && (
               <button
-                onClick={() => setShowModal(true)}
-                className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:bg-white/90 transition-all"
+                onClick={openCreateModal}
+                className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:bg-white/90 transition-all cursor-pointer"
               >
                 Create your first coupon
               </button>
@@ -197,52 +255,86 @@ export default function CouponsDashboard() {
             {filteredCoupons.map((coupon) => (
               <div
                 key={coupon.id}
-                className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 hover:border-white/20 transition-colors relative overflow-hidden group"
+                className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 hover:border-white/20 transition-colors relative overflow-hidden group flex flex-col justify-between"
               >
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-xl font-mono font-bold tracking-wider text-rose-400">
-                        {coupon.code}
-                      </h3>
-                      {!coupon.isActive || coupon.redemptionsCount >= coupon.maxRedemptions ? (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/10 text-white/50 uppercase">Expired</span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 uppercase">Active</span>
-                      )}
+                <div>
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-xl font-mono font-bold tracking-wider text-rose-400">
+                          {coupon.code}
+                        </h3>
+                        {!coupon.isActive || coupon.redemptionsCount >= coupon.maxRedemptions ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/10 text-white/50 uppercase">Inactive</span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 uppercase">Active</span>
+                        )}
+                      </div>
+                      <p className="text-2xl font-semibold text-white">
+                        {coupon.discountType === "PERCENTAGE" 
+                          ? `${coupon.discountValue}% OFF` 
+                          : `₦${Number(coupon.discountValue).toLocaleString()} OFF`}
+                      </p>
                     </div>
-                    <p className="text-2xl font-semibold text-white">
-                      {coupon.discountType === "PERCENTAGE" 
-                        ? `${coupon.discountValue}% OFF` 
-                        : `₦${Number(coupon.discountValue).toLocaleString()} OFF`}
-                    </p>
+                  </div>
+
+                  <div className="space-y-3 mt-6">
+                    <div className="flex items-center gap-3 text-sm text-white/60">
+                      <Package className="w-4 h-4 text-white/40" />
+                      <span>
+                        {coupon.productId 
+                          ? products.find(p => p.id === coupon.productId)?.title || "Specific Product" 
+                          : "Store-wide"}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 text-sm text-white/60">
+                      <CheckCircle2 className="w-4 h-4 text-white/40" />
+                      <div className="flex-1">
+                        <div className="flex justify-between mb-1 text-xs">
+                          <span>{coupon.redemptionsCount} used</span>
+                          <span>{coupon.maxRedemptions} max</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-rose-500 rounded-full transition-all"
+                            style={{ width: `${Math.min(100, (coupon.redemptionsCount / coupon.maxRedemptions) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-3 mt-6">
-                  <div className="flex items-center gap-3 text-sm text-white/60">
-                    <Package className="w-4 h-4 text-white/40" />
-                    <span>
-                      {coupon.productId 
-                        ? products.find(p => p.id === coupon.productId)?.title || "Specific Product" 
-                        : "Store-wide"}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 text-sm text-white/60">
-                    <CheckCircle2 className="w-4 h-4 text-white/40" />
-                    <div className="flex-1">
-                      <div className="flex justify-between mb-1 text-xs">
-                        <span>{coupon.redemptionsCount} used</span>
-                        <span>{coupon.maxRedemptions} max</span>
-                      </div>
-                      <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-rose-500 rounded-full transition-all"
-                          style={{ width: `${Math.min(100, (coupon.redemptionsCount / coupon.maxRedemptions) * 100)}%` }}
-                        />
-                      </div>
-                    </div>
+                {/* Actions Toolbar */}
+                <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between text-xs">
+                  <button
+                    onClick={() => handleToggleCoupon(coupon)}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+                      coupon.isActive 
+                        ? "bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20" 
+                        : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+                    }`}
+                  >
+                    <Power className="w-3.5 h-3.5" />
+                    <span>{coupon.isActive ? "Deactivate" : "Activate"}</span>
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => openEditModal(coupon)}
+                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all cursor-pointer"
+                      title="Edit Coupon"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCoupon(coupon.id)}
+                      className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-all cursor-pointer"
+                      title="Delete Coupon"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -251,7 +343,7 @@ export default function CouponsDashboard() {
         )}
       </div>
 
-      {/* Create Modal */}
+      {/* Create / Edit Modal */}
       <AnimatePresence>
         {showModal && (
           <motion.div
@@ -268,7 +360,7 @@ export default function CouponsDashboard() {
             >
               <button
                 onClick={() => setShowModal(false)}
-                className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 text-white/60 transition-colors"
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 text-white/60 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -277,10 +369,12 @@ export default function CouponsDashboard() {
                 <div className="w-10 h-10 rounded-full bg-rose-500/20 flex items-center justify-center">
                   <Tag className="w-5 h-5 text-rose-500" />
                 </div>
-                <h2 className="text-xl font-medium text-white">Create Coupon</h2>
+                <h2 className="text-xl font-medium text-white">
+                  {editingCoupon ? "Edit Coupon" : "Create Coupon"}
+                </h2>
               </div>
 
-              <form onSubmit={handleCreateCoupon} className="space-y-6">
+              <form onSubmit={handleSaveCoupon} className="space-y-6">
                 <div>
                   <label className="block text-sm text-white/60 mb-2">Coupon Code</label>
                   <input
@@ -351,12 +445,12 @@ export default function CouponsDashboard() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-white text-black font-medium py-3 rounded-xl hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all mt-4 flex items-center justify-center gap-2"
+                  className="w-full bg-white text-black font-medium py-3 rounded-xl hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all mt-4 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {submitting ? (
                     <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
                   ) : (
-                    "Create Coupon"
+                    editingCoupon ? "Save Changes" : "Create Coupon"
                   )}
                 </button>
               </form>
@@ -367,3 +461,4 @@ export default function CouponsDashboard() {
     </div>
   );
 }
+
